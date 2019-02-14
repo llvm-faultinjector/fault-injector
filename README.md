@@ -1,6 +1,6 @@
 # Fault Injection Tool for Hardware Injection
 
-This project is extended version of llfi. (https://github.com/DependableSystemsLab/LLFI)
+This project is compact version of llfi. (https://github.com/DependableSystemsLab/LLFI)
 
 ## Requirements
 
