@@ -40,7 +40,7 @@ static int profile_count = 0;
 static int profile_index[MAX_INDEX * 4];
 static int profile_value[MAX_INDEX * 4];
 
-void init(uint32_t _count_of_index)
+void fault_inject_init(uint32_t _count_of_index)
 {
 #if PRINT_MESSAGE
   printf("fault-injector rtl-core init!\n");
@@ -77,6 +77,7 @@ static int determine(double rate)
 }
 
 void fault_inject_profile(
+  major_type f_index,
   major_type index, 
   major_type value) {
   if (profile_count == MAX_INDEX * 4)
@@ -87,6 +88,7 @@ void fault_inject_profile(
 }
 
 major_type fault_inject_determine(
+  major_type f_index,
   major_type index,
   major_type dependency)
 {
@@ -110,32 +112,45 @@ static int get_fault_inject_pos() {
   return pos;
 }
 
-major_type fault_inject_flipbit(
-  major_type value) {
-  return value ^ (1 << get_fault_inject_pos());
-}
+//major_type fault_inject_flipbit(
+//  major_type value) {
+//  return value ^ (1 << get_fault_inject_pos());
+//}
+//
+//major_type fault_inject_set0(
+//  major_type value) {
+//  return value & ~(1 << get_fault_inject_pos());
+//}
+//
+//major_type fault_inject_set1(
+//  major_type value) {
+//  return value | (1 << get_fault_inject_pos());
+//}
+//
+//major_type fault_inject(
+//  major_type value) {
+//  switch (injection_type) {
+//  case 0: return fault_inject_flipbit(value);
+//  case 1: return fault_inject_set0(value);
+//  case 2: return fault_inject_set1(value);
+//  }
+//  return value;
+//}
 
-major_type fault_inject_set0(
-  major_type value) {
-  return value & ~(1 << get_fault_inject_pos());
-}
+//major_type fault_inject(
+//  uint32_t f_index,
+//  uint32_t index,
+//  uint32_t size,
+//  char *value) {
+//  switch (injection_type) {
+//  case 0: return fault_inject_flipbit(value);
+//  case 1: return fault_inject_set0(value);
+//  case 2: return fault_inject_set1(value);
+//  }
+//  return value;
+//}
 
-major_type fault_inject_set1(
-  major_type value) {
-  return value | (1 << get_fault_inject_pos());
-}
-
-major_type fault_inject(
-  major_type value) {
-  switch (injection_type) {
-  case 0: return fault_inject_flipbit(value);
-  case 1: return fault_inject_set0(value);
-  case 2: return fault_inject_set1(value);
-  }
-  return value;
-}
-
-void finish()
+void fault_inject_finish()
 {
 #if PRINT_MESSAGE
   printf("fault-injector rtl-core finish!\n");
