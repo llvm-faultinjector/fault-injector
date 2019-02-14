@@ -29,10 +29,6 @@
 
 using namespace llvm;
 
-//static cl::opt<bool>
-//FaultInjector("fault-injection", cl::init(false), cl::NotHidden,
-//  cl::desc("Fault Injection"));
-
 namespace {
   
 ///---------------------------------------------------------
@@ -84,27 +80,22 @@ public:
     //
     // Inject Fault function
     //
-    //std::vector<Value*> inject_func_args(4);
-    //inject_func_args[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), f_index);
-    //inject_func_args[1] = ConstantInt::get(Type::getInt32Ty(M.getContext()), index);
-    //ArrayRef<Value*> inject_func_args_array_ref(inject_func_args);
-    //CallInst *injection_call_inst = CallInst::Create(inject_func, inject_func_args_array_ref, "");
     Type *return_type = I->getType();
     std::vector<Type*> inject_func_types(5);
     inject_func_types[0] = Type::getInt32Ty(M.getContext()); // f_index
     inject_func_types[1] = Type::getInt32Ty(M.getContext()); // index
-    inject_func_types[2] = return_type; // data
-    inject_func_types[3] = PointerType::get(Type::getInt8Ty(M.getContext()), 0); // name
+    inject_func_types[2] = Type::getInt32Ty(M.getContext()); // dependecy
+    inject_func_types[3] = return_type; // data
+    inject_func_types[4] = PointerType::get(Type::getInt8Ty(M.getContext()), 0); // name
     ArrayRef<Type*> paramtypes_array_ref(inject_func_types);
     FunctionType* injectfunctype = FunctionType::get(return_type, paramtypes_array_ref, false);
-
     std::string funcname = getFIFuncNameforType(return_type);
     Constant *injectfunc = M.getOrInsertFunction(funcname, injectfunctype);
-
     std::vector<Value*> args(7);
     args[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), f_index);
     args[1] = ConstantInt::get(Type::getInt32Ty(M.getContext()), index);
-    args[2] = I;
+    args[2] = ConstantInt::get(Type::getInt32Ty(M.getContext()), getDepedencyLevel(I));
+    args[3] = I;
     std::string opcode_str = I->getOpcodeName();
     GlobalVariable* opcode_str_gv = findOrCreateGlobalNameString(M, opcode_str);
     std::vector<Constant*> indices_for_gep(2);
@@ -113,11 +104,27 @@ public:
     ArrayRef<Constant*> indices_for_gep_array_ref(indices_for_gep);
     Constant* gep_expr = ConstantExpr::getGetElementPtr(opcode_str_gv->getType(), 
       opcode_str_gv, indices_for_gep_array_ref, true);
-    args[3] = gep_expr; // opcode in string
+    args[4] = gep_expr; // opcode in string
+    ArrayRef<Value*> args_array_ref(args);
+    Instruction *insertptr = I;
+    Instruction *ficall = CallInst::Create(injectfunc, args_array_ref, "fi", insertptr);
 
-    ////
-    //// Profile function
-    ////
+    std::list<User*> inst_uses;
+    for (Value::user_iterator user_it = I->user_begin();
+      user_it != I->user_end(); ++user_it) {
+      User *user = *user_it;
+      if (user != ficall)
+        inst_uses.push_back(user);
+    }
+    for (std::list<User*>::iterator use_it = inst_uses.begin();
+      use_it != inst_uses.end(); ++use_it) {
+      User *user = *use_it;
+      user->replaceUsesOfWith(I, ficall);
+    }
+
+    //
+    // Profile function
+    //
     //const char *opcodeName = I->getOpcodeName();
     //const std::string str(I->getOpcodeName());
     //ArrayRef<uint8_t> opcode_name_array_ref((uint8_t*)opcodeName, str.size() + 1);
@@ -178,37 +185,6 @@ private:
 
     Function* mainfunc = M.getFunction("main");
     exitinsts.insert(getTermInstofFunction(mainfunc));
-  }
-
-  static void createInjectionFunctions(Module &M) {
-    Constant *pre_fi_func = getDetermineFunc(M);
-    Constant *injectfunc = getInjectFunc(M);
-    Constant *profilefunc = getProfileFunc(M);
-
-    //for (std::map<const Type*, std::string>::const_iterator fi =
-    //  fi_rettype_funcname_map.begin();
-    //  fi != fi_rettype_funcname_map.end(); ++fi) {
-    //  const Type *fi_type = fi->first;
-    //  
-    //  Type *fi_type_unconst = const_cast<Type*>(fi_type);
-    //  
-    //  std::string fi_name = fi->second;
-    //  createInjectionFuncforType(M, fi_type_unconst, fi_name, injectfunc, pre_fi_func);
-    //}
-  }
-
-  static Constant *getDetermineFunc(Module &M) {
-    std::vector<Type*> profile_func_param_types(3);
-    LLVMContext &context = M.getContext();
-    profile_func_param_types[0] = Type::getInt32Ty(context);
-    profile_func_param_types[1] = Type::getInt32Ty(context);
-    profile_func_param_types[2] = Type::getInt32Ty(context);
-
-    ArrayRef<Type*> profile_func_param_types_array_ref(profile_func_param_types);
-
-    FunctionType *fi_init_func_type = FunctionType::get(Type::getInt32Ty(context),
-      profile_func_param_types_array_ref, false);
-    return M.getOrInsertFunction("fault_inject_determine", fi_init_func_type);
   }
 
 #pragma endregion
@@ -279,7 +255,85 @@ private:
     return M.getOrInsertFunction("fault_inject", fi_init_func_type);
   }
 
-  int getDepedencyLevel(Instruction *I) {
+  static Constant *getDetermineFunc(Module &M) {
+    std::vector<Type*> profile_func_param_types(3);
+    LLVMContext &context = M.getContext();
+    profile_func_param_types[0] = Type::getInt32Ty(context);
+    profile_func_param_types[1] = Type::getInt32Ty(context);
+    profile_func_param_types[2] = Type::getInt32Ty(context);
+
+    ArrayRef<Type*> profile_func_param_types_array_ref(profile_func_param_types);
+
+    FunctionType *fi_init_func_type = FunctionType::get(Type::getInt32Ty(context),
+      profile_func_param_types_array_ref, false);
+    return M.getOrInsertFunction("fault_inject_determine", fi_init_func_type);
+  }
+
+  static void createInjectionFunctions(Module &M) {
+    Constant *pre_fi_func = getDetermineFunc(M);
+    Constant *injectfunc = getInjectFunc(M);
+    Constant *profilefunc = getProfileFunc(M);
+
+    for (std::map<const Type*, std::string>::const_iterator fi =
+      fi_rettype_funcname_map.begin();
+      fi != fi_rettype_funcname_map.end(); ++fi) {
+      const Type *fi_type = fi->first;
+
+      Type *fi_type_unconst = const_cast<Type*>(fi_type);
+
+      std::string fi_name = fi->second;
+      createInjectionFuncforType(M, fi_type_unconst, fi_name, injectfunc, pre_fi_func);
+    }
+  }
+
+  static void createInjectionFuncforType(Module &M, Type *fitype, std::string &fi_name,
+    Constant *injectfunc, Constant *pre_fi_func) {
+    LLVMContext &context = M.getContext();
+    Function *f = M.getFunction(fi_name);
+    std::vector<Value*> args;
+    for (Function::arg_iterator ai = f->arg_begin(); ai != f->arg_end(); ++ai)
+      args.push_back(&*ai);
+
+    BasicBlock* entryblock = BasicBlock::Create(context, "entry", f);
+    // store the value of target instruction to memory
+    AllocaInst *tmploc = new AllocaInst(fitype, M.getDataLayout().getProgramAddressSpace(), "tmploc", entryblock);
+    new StoreInst(args[1], tmploc, entryblock);
+
+    std::vector<Value*> pre_fi_args(3);
+    pre_fi_args[0] = args[0];
+    pre_fi_args[1] = args[1];
+    pre_fi_args[2] = args[2];
+    ArrayRef<Value*> pre_fi_args_array_ref(pre_fi_args);
+    Value *prefuncval = CallInst::Create(pre_fi_func, pre_fi_args_array_ref, "pre_cond", entryblock);
+
+    BasicBlock *fiblock = BasicBlock::Create(context, "inject", f);
+    BasicBlock *exitblock = BasicBlock::Create(context, "exit", f);
+    //if prefuncval is true, goto inject function
+    BranchInst::Create(fiblock, exitblock, prefuncval, entryblock);
+    BranchInst *fi2exit_branch = BranchInst::Create(exitblock, fiblock);
+
+    std::vector<Value*> fi_args(4);
+    fi_args[0] = args[0]; //LLFI index
+    int size = fitype->getScalarSizeInBits();
+    fi_args[1] = args[1]; //size
+    //fi_args[2] = new BitCastInst(tmploc,
+    //  PointerType::get(Type::getInt8Ty(context), 0),
+    //  "tmploc_cast", fi2exit_branch); //pointer to target memory
+    fi_args[2] = ConstantInt::get(Type::getInt32Ty(context), size);
+    fi_args[3] = args[3];
+    //fi_args[4] = args[5];
+    //fi_args[5] = args[6];
+                         
+    ArrayRef<Value*> fi_args_array_ref(fi_args);
+
+    CallInst::Create(injectfunc, fi_args_array_ref, "",
+      fi2exit_branch);
+
+    LoadInst *updateval = new LoadInst(tmploc, "updateval", exitblock);
+    ReturnInst::Create(context, updateval, exitblock);
+  }
+
+  static int getDepedencyLevel(Instruction *I) {
     auto mgr = getInfoManager(I->getDebugLoc()->getLine());
     if (mgr == nullptr)
       return -1;
