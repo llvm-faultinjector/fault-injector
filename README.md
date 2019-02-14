@@ -32,6 +32,7 @@ Then run this command lines.
 
 --------
 
+clang -S -emit-llvm a.c
 ./../opt -faultinject a.ll -S -o b.ll
 llc -filetype=obj b.ll -o b.obj
 
