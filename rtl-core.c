@@ -36,9 +36,9 @@ static int check_index[MAX_INDEX];
 static int check_count_require[MAX_INDEX];
 static int check_count[MAX_INDEX];
 
-static int profile_count = 0;
-static int profile_index[MAX_INDEX * 4];
-static int profile_value[MAX_INDEX * 4];
+//static int profile_count = 0;
+//static int profile_index[MAX_INDEX * 4];
+//static int profile_value[MAX_INDEX * 4];
 
 void fault_inject_init(uint32_t _count_of_index)
 {
@@ -79,12 +79,13 @@ static int determine(double rate)
 void fault_inject_profile(
   major_type f_index,
   major_type index, 
-  major_type value) {
-  if (profile_count == MAX_INDEX * 4)
+  char *value,
+  char *name) {
+  /*if (profile_count == MAX_INDEX * 4)
     return;
   profile_index[profile_count] = index;
   profile_value[profile_count] = value;
-  profile_count++;
+  profile_count++;*/
 }
 
 major_type fault_inject_determine(
@@ -107,48 +108,37 @@ major_type fault_inject_determine(
 static int get_fault_inject_pos() {
   int pos = flipbitpos;
   if (fix_flipbitpos == 0) {
-    pos = rand() % (sizeof(major_type) * 8);
+    pos = rand() % (sizeof(char) * 8);
   }
   return pos;
 }
 
-//major_type fault_inject_flipbit(
-//  major_type value) {
-//  return value ^ (1 << get_fault_inject_pos());
-//}
-//
-//major_type fault_inject_set0(
-//  major_type value) {
-//  return value & ~(1 << get_fault_inject_pos());
-//}
-//
-//major_type fault_inject_set1(
-//  major_type value) {
-//  return value | (1 << get_fault_inject_pos());
-//}
-//
-//major_type fault_inject(
-//  major_type value) {
-//  switch (injection_type) {
-//  case 0: return fault_inject_flipbit(value);
-//  case 1: return fault_inject_set0(value);
-//  case 2: return fault_inject_set1(value);
-//  }
-//  return value;
-//}
+void fault_inject_flipbit(
+  char *value) {
+  *value ^= (1 << get_fault_inject_pos());
+}
 
-//major_type fault_inject(
-//  uint32_t f_index,
-//  uint32_t index,
-//  uint32_t size,
-//  char *value) {
-//  switch (injection_type) {
-//  case 0: return fault_inject_flipbit(value);
-//  case 1: return fault_inject_set0(value);
-//  case 2: return fault_inject_set1(value);
-//  }
-//  return value;
-//}
+void fault_inject_set0(
+  char *value) {
+  *value &= ~(1 << get_fault_inject_pos());
+}
+
+void fault_inject_set1(
+  char *value) {
+  *value |= (1 << get_fault_inject_pos());
+}
+
+void fault_inject(
+  uint32_t f_index,
+  uint32_t index,
+  uint32_t size,
+  char *value) {
+  switch (injection_type) {
+  case 0: fault_inject_flipbit(value); break;
+  case 1: fault_inject_set0(value);    break;
+  case 2: fault_inject_set1(value);    break;
+  }
+}
 
 void fault_inject_finish()
 {
