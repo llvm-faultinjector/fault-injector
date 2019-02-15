@@ -145,3 +145,5 @@ int main(int argc, char *argv[])
 [Fault Injector] f_index=04, index=00, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
 [Fault Injector] RTL-Core Finish!
 ```
+
+Trace index=11 by yourself.
