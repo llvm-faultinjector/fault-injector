@@ -8,6 +8,10 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <map>
+#include <set>
+#include <sstream>
+#include <string>
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Demangle/Demangle.h"
@@ -15,31 +19,26 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/Function.h"
-#include "llvm/IR/Instructions.h"
 #include "llvm/IR/InstIterator.h"
+#include "llvm/IR/Instructions.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/Dependency.h"
-#include <set>
-#include <string>
-#include <sstream>
-#include <map>
 
 #define DEBUG_TYPE "fault-injection"
 
 using namespace llvm;
-static std::map<const Type*, std::string> fi_rettype_funcname_map;
+static std::map<const Type *, std::string> fi_rettype_funcname_map;
 namespace {
 
-void genFullNameOpcodeMap(
-    std::map<std::string, unsigned> &opcodenamemap) {
+void genFullNameOpcodeMap(std::map<std::string, unsigned> &opcodenamemap) {
 #define HANDLE_INST(N, OPC, CLASS) \
   opcodenamemap[std::string(Instruction::getOpcodeName(N))] = N;
 #include "llvm/IR/Instruction.def"
 }
 static int a = 1;
-  
+
 ///---------------------------------------------------------
 ///
 ///                    Insert Machine
@@ -47,13 +46,11 @@ static int a = 1;
 ///---------------------------------------------------------
 
 class FaultInjectionInsertMachine {
-public:
-
+ public:
   //
   // Insert code that does not depend on Instruction or Register.
   //
   static void insertMetaFunc(Module &M, int count_of_index) {
-    
     //
     // Find main function
     //
@@ -64,22 +61,24 @@ public:
     // Insert 'fault_inject_init' function.
     //
     Constant *initFunc = getInitFunction(M);
-    std::vector<Value*> initFunc_args(1);
-    initFunc_args[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), count_of_index);
-    ArrayRef<Value*> initFunc_args_array_ref(initFunc_args);
-    CallInst::Create(initFunc, initFunc_args_array_ref, "", entryBB->getFirstNonPHI());
+    std::vector<Value *> initFunc_args(1);
+    initFunc_args[0] =
+        ConstantInt::get(Type::getInt32Ty(M.getContext()), count_of_index);
+    ArrayRef<Value *> initFunc_args_array_ref(initFunc_args);
+    CallInst::Create(initFunc, initFunc_args_array_ref, "",
+                     entryBB->getFirstNonPHI());
 
     //
     // Insert 'fault_inject_finish' function.
     //
     Constant *finishFunc = getFinishFunction(M);
 
-    std::set<Instruction*> exitInsts;
+    std::set<Instruction *> exitInsts;
     getProgramExitInsts(M, exitInsts);
-    assert(exitInsts.size() != 0
-      && "Program does not have explicit exit point");
-    for (std::set<Instruction*>::iterator it = exitInsts.begin();
-      it != exitInsts.end(); ++it) {
+    assert(exitInsts.size() != 0 &&
+           "Program does not have explicit exit point");
+    for (std::set<Instruction *>::iterator it = exitInsts.begin();
+         it != exitInsts.end(); ++it) {
       Instruction *term = *it;
       CallInst::Create(finishFunc, "", term);
     }
@@ -90,24 +89,25 @@ public:
     createInjectionFunctions(M);
   }
 
-  static void insertFaultInjection(Module &M, Function &F, Instruction *I, int index, int f_index, std::vector<int> &regs)
-  {
-    for (auto reg : regs)
-      insertFaultInjection(M, F, I, index, f_index, reg);
+  static void insertFaultInjection(Module &M, Function &F, Instruction *I,
+                                   int index, int f_index,
+                                   std::vector<int> &regs) {
+    for (auto reg : regs) insertFaultInjection(M, F, I, index, f_index, reg);
   }
 
   //
   // Inject 'inject_fault#num' functions for test fault-injection.
   //
-  static void insertFaultInjection(Module &M, Function &F, Instruction *I, int index, int f_index, int reg_num) {
-
+  static void insertFaultInjection(Module &M, Function &F, Instruction *I,
+                                   int index, int f_index, int reg_num) {
     errs() << "inject ";
     I->print(errs());
     errs() << "\n";
 
     Constant *inject_func = getInjectFunc(M);
     Constant *trace_func = getTraceFunc(M);
-    Instruction *alloca_insertPoint = I->getParent()->getParent()->begin()->getFirstNonPHIOrDbgOrLifetime();
+    Instruction *alloca_insertPoint =
+        I->getParent()->getParent()->begin()->getFirstNonPHIOrDbgOrLifetime();
     Value *target = I;
 
     if (reg_num != -1) {
@@ -118,116 +118,122 @@ public:
     // Get 'inject_fault#num' parameter types.
     //
     Type *return_type = target->getType();
-    std::vector<Type*> inject_func_types(6);
-    inject_func_types[0] = Type::getInt32Ty(M.getContext()); // f_index
-    inject_func_types[1] = Type::getInt32Ty(M.getContext()); // index
-    inject_func_types[2] = Type::getInt32Ty(M.getContext()); // reg_num
-    inject_func_types[3] = Type::getInt32Ty(M.getContext()); // dependecy
-    inject_func_types[4] = return_type; // data
-    inject_func_types[5] = PointerType::get(Type::getInt8Ty(M.getContext()), 0); // name
-    ArrayRef<Type*> paramtypes_array_ref(inject_func_types);
-    FunctionType* injectfunctype = FunctionType::get(return_type, paramtypes_array_ref, false);
+    std::vector<Type *> inject_func_types(6);
+    inject_func_types[0] = Type::getInt32Ty(M.getContext());  // f_index
+    inject_func_types[1] = Type::getInt32Ty(M.getContext());  // index
+    inject_func_types[2] = Type::getInt32Ty(M.getContext());  // reg_num
+    inject_func_types[3] = Type::getInt32Ty(M.getContext());  // dependecy
+    inject_func_types[4] = return_type;                       // data
+    inject_func_types[5] =
+        PointerType::get(Type::getInt8Ty(M.getContext()), 0);  // name
+    ArrayRef<Type *> paramtypes_array_ref(inject_func_types);
+    FunctionType *injectfunctype =
+        FunctionType::get(return_type, paramtypes_array_ref, false);
     std::string funcname = getFIFuncNameforType(return_type);
     Constant *injectfunc = M.getOrInsertFunction(funcname, injectfunctype);
 
     //
     // Set 'inject_fault#num' parameters.
     //
-    std::vector<Value*> args(6);
+    std::vector<Value *> args(6);
     args[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), f_index);
     args[1] = ConstantInt::get(Type::getInt32Ty(M.getContext()), index);
     args[2] = ConstantInt::get(Type::getInt32Ty(M.getContext()), reg_num);
-    args[3] = ConstantInt::get(Type::getInt32Ty(M.getContext()), getDepedencyLevel(I));
+    args[3] = ConstantInt::get(Type::getInt32Ty(M.getContext()),
+                               getDepedencyLevel(I));
     args[4] = target;
     std::string opcode_str = I->getOpcodeName();
-    GlobalVariable* opcode_str_gv = findOrCreateGlobalNameString(M, opcode_str);
-    std::vector<Constant*> indices_for_gep(2);
+    GlobalVariable *opcode_str_gv = findOrCreateGlobalNameString(M, opcode_str);
+    std::vector<Constant *> indices_for_gep(2);
     indices_for_gep[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 0);
     indices_for_gep[1] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 0);
-    ArrayRef<Constant*> indices_for_gep_array_ref(indices_for_gep);
-    Constant* gep_expr = ConstantExpr::getGetElementPtr(NULL, 
-      opcode_str_gv, indices_for_gep_array_ref, true);
-    args[5] = gep_expr; // opcode in 
-    ArrayRef<Value*> args_array_ref(args);
+    ArrayRef<Constant *> indices_for_gep_array_ref(indices_for_gep);
+    Constant *gep_expr = ConstantExpr::getGetElementPtr(
+        NULL, opcode_str_gv, indices_for_gep_array_ref, true);
+    args[5] = gep_expr;  // opcode in
+    ArrayRef<Value *> args_array_ref(args);
     Instruction *insertptr = getInsertPtrforRegsofInst(target, I);
-    Instruction *ficall = CallInst::Create(injectfunc, args_array_ref, "fi", insertptr);
+    Instruction *ficall =
+        CallInst::Create(injectfunc, args_array_ref, "fi", insertptr);
 
     //
-    // Concatenates the results of an existing register with the 'inject_fault#num' function. 
+    // Concatenates the results of an existing register with the
+    // 'inject_fault#num' function.
     //
-    std::list<User*> inst_uses;
+    std::list<User *> inst_uses;
     for (Value::user_iterator user_it = target->user_begin();
-      user_it != target->user_end(); ++user_it) {
+         user_it != target->user_end(); ++user_it) {
       User *user = *user_it;
-      if (user != ficall)
-        inst_uses.push_back(user);
+      if (user != ficall) inst_uses.push_back(user);
     }
-    for (std::list<User*>::iterator use_it = inst_uses.begin();
-      use_it != inst_uses.end(); ++use_it) {
+    for (std::list<User *>::iterator use_it = inst_uses.begin();
+         use_it != inst_uses.end(); ++use_it) {
       User *user = *use_it;
       user->replaceUsesOfWith(target, ficall);
 
-      if (isa<TerminatorInst>(user))
-        continue;
+      if (isa<TerminatorInst>(user)) continue;
 
       //
       // Insert 'fault_inject_trace' function.
       //
-      AllocaInst *tmploc = new AllocaInst(return_type, M.getDataLayout().getProgramAddressSpace(), "tmploc_" + intToString(a), &*F.getEntryBlock().begin());
-      StoreInst *store_inst = new StoreInst(ficall, tmploc, cast<Instruction>(user)->getNextNode());
-      std::vector<Value*> trace_args(7);
-      trace_args[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), f_index);
+      AllocaInst *tmploc = new AllocaInst(
+          return_type, M.getDataLayout().getProgramAddressSpace(),
+          "tmploc_" + intToString(a), &*F.getEntryBlock().begin());
+      StoreInst *store_inst =
+          new StoreInst(ficall, tmploc, cast<Instruction>(user)->getNextNode());
+      std::vector<Value *> trace_args(7);
+      trace_args[0] =
+          ConstantInt::get(Type::getInt32Ty(M.getContext()), f_index);
       trace_args[1] = ConstantInt::get(Type::getInt32Ty(M.getContext()), index);
-      trace_args[2] = ConstantInt::get(Type::getInt32Ty(M.getContext()), reg_num);
-      trace_args[3] = ConstantInt::get(Type::getInt32Ty(M.getContext()), getDepedencyLevel(I));
-      trace_args[4] = ConstantInt::get(Type::getInt32Ty(M.getContext()), target->getType()->getScalarSizeInBits()); // size
+      trace_args[2] =
+          ConstantInt::get(Type::getInt32Ty(M.getContext()), reg_num);
+      trace_args[3] = ConstantInt::get(Type::getInt32Ty(M.getContext()),
+                                       getDepedencyLevel(I));
+      trace_args[4] =
+          ConstantInt::get(Type::getInt32Ty(M.getContext()),
+                           target->getType()->getScalarSizeInBits());  // size
       F.print(errs());
       user->print(errs());
-      trace_args[5] = new BitCastInst(tmploc,
-        PointerType::get(Type::getInt8Ty(M.getContext()), 0), "tmploc_cast_" + intToString(a++), cast<Instruction>(user)->getNextNode()->getNextNode());
+      trace_args[5] = new BitCastInst(
+          tmploc, PointerType::get(Type::getInt8Ty(M.getContext()), 0),
+          "tmploc_cast_" + intToString(a++),
+          cast<Instruction>(user)->getNextNode()->getNextNode());
       trace_args[6] = gep_expr;
-      ArrayRef<Value*> trace_args_array_ref(trace_args);
-      CallInst::Create(getTraceFunc(M), trace_args_array_ref, "", cast<Instruction>(user)->getNextNode()->getNextNode()->getNextNode());
+      ArrayRef<Value *> trace_args_array_ref(trace_args);
+      CallInst::Create(
+          getTraceFunc(M), trace_args_array_ref, "",
+          cast<Instruction>(user)->getNextNode()->getNextNode()->getNextNode());
     }
-
-    //
-    // Profile function
-    //
-    //const char *opcodeName = I->getOpcodeName();
-    //const std::string str(I->getOpcodeName());
-    //ArrayRef<uint8_t> opcode_name_array_ref((uint8_t*)opcodeName, str.size() + 1);
-    //llvm::Value* OPCodeName = llvm::ConstantDataArray::get(M.getContext(), opcode_name_array_ref);
-    //AllocaInst* OPCodePtr = new AllocaInst(OPCodeName->getType(), 
-    //  F.getParent()->getDataLayout().getProgramAddressSpace(), "llfi_trace", alloca_insertPoint);
-    //new StoreInst(OPCodeName, OPCodePtr, insertPoint);
   }
 
-private:
-
+ private:
 #pragma region Meta Functions
 
   //
   //  초기화 함수 헤더를 가져옵니다.
   //
-  static Constant * getInitFunction(Module &M) {
+  static Constant *getInitFunction(Module &M) {
     LLVMContext &context = M.getContext();
 
-    std::vector<Type*> fault_inject_init_param_types(1);
+    std::vector<Type *> fault_inject_init_param_types(1);
     fault_inject_init_param_types[0] = Type::getInt32Ty(context);
-    ArrayRef<Type*> fault_inject_init_param_types_array_ref(fault_inject_init_param_types);
+    ArrayRef<Type *> fault_inject_init_param_types_array_ref(
+        fault_inject_init_param_types);
 
-    FunctionType *fi_init_func_type = FunctionType::get(Type::getVoidTy(context),
-      fault_inject_init_param_types_array_ref, false);
+    FunctionType *fi_init_func_type =
+        FunctionType::get(Type::getVoidTy(context),
+                          fault_inject_init_param_types_array_ref, false);
     return M.getOrInsertFunction("fault_inject_init", fi_init_func_type);
   }
 
   //
   //  마무리 함수 헤더를 가져옵니다.
   //
-  static Constant * getFinishFunction(Module &M) {
+  static Constant *getFinishFunction(Module &M) {
     LLVMContext &context = M.getContext();
 
-    FunctionType *fi_init_func_type = FunctionType::get(Type::getVoidTy(context), false);
+    FunctionType *fi_init_func_type =
+        FunctionType::get(Type::getVoidTy(context), false);
     return M.getOrInsertFunction("fault_inject_finish", fi_init_func_type);
   }
 
@@ -235,24 +241,26 @@ private:
     BasicBlock &termbb = func->back();
     Instruction *ret = termbb.getTerminator();
 
-    assert(isa<ReturnInst>(ret) || isa<UnreachableInst>(ret) &&
-      "Last instruction is not return or exit() instruction");
+    assert(isa<ReturnInst>(ret) ||
+           isa<UnreachableInst>(ret) &&
+               "Last instruction is not return or exit() instruction");
     return ret;
   }
 
   //
   //  프로그램의 모든 종료지점을 가져옵니다.
   //
-  static void getProgramExitInsts(Module &M, std::set<Instruction*> &exitinsts)
-  {
+  static void getProgramExitInsts(Module &M,
+                                  std::set<Instruction *> &exitinsts) {
     for (Module::iterator m_it = M.begin(); m_it != M.end(); ++m_it) {
       if (!m_it->isDeclaration()) {
-        for (inst_iterator f_it = inst_begin(*m_it); f_it != inst_end(*m_it); ++f_it) {
+        for (inst_iterator f_it = inst_begin(*m_it); f_it != inst_end(*m_it);
+             ++f_it) {
           Instruction *inst = &(*f_it);
           if (CallInst *ci = dyn_cast<CallInst>(inst)) {
             Function *calledFunc = ci->getCalledFunction();
             if (calledFunc && calledFunc->hasName() &&
-              calledFunc->getName().str() == "exit") {
+                calledFunc->getName().str() == "exit") {
               exitinsts.insert(inst);
             }
           }
@@ -260,7 +268,7 @@ private:
       }
     }
 
-    Function* mainfunc = M.getFunction("main");
+    Function *mainfunc = M.getFunction("main");
     exitinsts.insert(getTermInstofFunction(mainfunc));
   }
 
@@ -272,19 +280,17 @@ private:
     if (reg == inst) {
       if (inst->isTerminator()) {
         errs() << "ERROR: LLFI not able to inject into destination register of "
-          << *inst << ", change isRegofInstInjectable() to fix it\n";
+               << *inst << ", change isRegofInstInjectable() to fix it\n";
         exit(2);
       } else {
         Instruction *nn = inst->getNextNode();
-        while (isa<PHINode>(nn))
-          nn = nn->getNextNode();
+        while (isa<PHINode>(nn)) nn = nn->getNextNode();
         return &*nn;
       }
-    }
-    else {
+    } else {
       if (isa<PHINode>(inst)) {
-        errs() << "ERROR: LLFI not able to inject into source register of " <<
-          *inst << ", change isRegofInstInjectable to fix it\n";
+        errs() << "ERROR: LLFI not able to inject into source register of "
+               << *inst << ", change isRegofInstInjectable to fix it\n";
         exit(2);
       }
       return inst->getNextNode();
@@ -297,7 +303,6 @@ private:
     return s.str();
   }
 
-  
   static std::string getFIFuncNameforType(const Type *type) {
     std::string funcname;
     if (fi_rettype_funcname_map.find(type) != fi_rettype_funcname_map.end()) {
@@ -311,69 +316,78 @@ private:
     return funcname;
   }
 
-  static GlobalVariable* findOrCreateGlobalNameString(Module &M, std::string name)
-  {
-    LLVMContext& context = M.getContext();
+  static GlobalVariable *findOrCreateGlobalNameString(Module &M,
+                                                      std::string name) {
+    LLVMContext &context = M.getContext();
     std::string str_prefix = std::string("fault_inject_");
     std::string str_suffix = std::string("_namestr");
-    GlobalVariable* nameStr = M.getGlobalVariable(str_prefix + name + str_suffix, true);
-    if (nameStr != NULL)
-      return nameStr;
+    GlobalVariable *nameStr =
+        M.getGlobalVariable(str_prefix + name + str_suffix, true);
+    if (nameStr != NULL) return nameStr;
     std::string gv_nameStr = str_prefix + name + str_suffix;
-    Constant* name_c = ConstantDataArray::getString(context, name);
-    nameStr = new GlobalVariable(name_c->getType(), true, GlobalVariable::InternalLinkage, name_c, gv_nameStr.c_str());
+    Constant *name_c = ConstantDataArray::getString(context, name);
+    nameStr = new GlobalVariable(name_c->getType(), true,
+                                 GlobalVariable::InternalLinkage, name_c,
+                                 gv_nameStr.c_str());
     M.getGlobalList().push_back(nameStr);
     return nameStr;
   }
 
   static Constant *getTraceFunc(Module &M) {
-    std::vector<Type*> profile_func_param_types(7);
+    std::vector<Type *> profile_func_param_types(7);
     LLVMContext &context = M.getContext();
-    profile_func_param_types[0] = Type::getInt32Ty(context); // function index
-    profile_func_param_types[1] = Type::getInt32Ty(context); // index
-    profile_func_param_types[2] = Type::getInt32Ty(context); // register number
-    profile_func_param_types[3] = Type::getInt32Ty(context); // dependency
-    profile_func_param_types[4] = Type::getInt32Ty(context); // size
-    profile_func_param_types[5] = PointerType::get(Type::getInt8Ty(context), 0); // value
-    profile_func_param_types[6] = PointerType::get(Type::getInt8Ty(context), 0); // opcode name
+    profile_func_param_types[0] = Type::getInt32Ty(context);  // function index
+    profile_func_param_types[1] = Type::getInt32Ty(context);  // index
+    profile_func_param_types[2] = Type::getInt32Ty(context);  // register number
+    profile_func_param_types[3] = Type::getInt32Ty(context);  // dependency
+    profile_func_param_types[4] = Type::getInt32Ty(context);  // size
+    profile_func_param_types[5] =
+        PointerType::get(Type::getInt8Ty(context), 0);  // value
+    profile_func_param_types[6] =
+        PointerType::get(Type::getInt8Ty(context), 0);  // opcode name
 
-    ArrayRef<Type*> profile_func_param_types_array_ref(profile_func_param_types);
+    ArrayRef<Type *> profile_func_param_types_array_ref(
+        profile_func_param_types);
 
-    FunctionType *fi_init_func_type = FunctionType::get(Type::getVoidTy(context),
-      profile_func_param_types_array_ref, false);
+    FunctionType *fi_init_func_type = FunctionType::get(
+        Type::getVoidTy(context), profile_func_param_types_array_ref, false);
     return M.getOrInsertFunction("fault_inject_trace", fi_init_func_type);
   }
 
   static Constant *getInjectFunc(Module &M) {
-    std::vector<Type*> profile_func_param_types(7);
+    std::vector<Type *> profile_func_param_types(7);
     LLVMContext &context = M.getContext();
-    profile_func_param_types[0] = Type::getInt32Ty(context); // function index
-    profile_func_param_types[1] = Type::getInt32Ty(context); // index
-    profile_func_param_types[2] = Type::getInt32Ty(context); // register number
-    profile_func_param_types[3] = Type::getInt32Ty(context); // dependency
-    profile_func_param_types[4] = Type::getInt32Ty(context); // size
-    profile_func_param_types[5] = PointerType::get(Type::getInt8Ty(context), 0); // value
-    profile_func_param_types[6] = PointerType::get(Type::getInt8Ty(context), 0); // opcode name
+    profile_func_param_types[0] = Type::getInt32Ty(context);  // function index
+    profile_func_param_types[1] = Type::getInt32Ty(context);  // index
+    profile_func_param_types[2] = Type::getInt32Ty(context);  // register number
+    profile_func_param_types[3] = Type::getInt32Ty(context);  // dependency
+    profile_func_param_types[4] = Type::getInt32Ty(context);  // size
+    profile_func_param_types[5] =
+        PointerType::get(Type::getInt8Ty(context), 0);  // value
+    profile_func_param_types[6] =
+        PointerType::get(Type::getInt8Ty(context), 0);  // opcode name
 
-    ArrayRef<Type*> profile_func_param_types_array_ref(profile_func_param_types);
+    ArrayRef<Type *> profile_func_param_types_array_ref(
+        profile_func_param_types);
 
-    FunctionType *fi_init_func_type = FunctionType::get(Type::getVoidTy(context),
-      profile_func_param_types_array_ref, false);
+    FunctionType *fi_init_func_type = FunctionType::get(
+        Type::getVoidTy(context), profile_func_param_types_array_ref, false);
     return M.getOrInsertFunction("fault_inject", fi_init_func_type);
   }
 
   static Constant *getDetermineFunc(Module &M) {
-    std::vector<Type*> profile_func_param_types(4);
+    std::vector<Type *> profile_func_param_types(4);
     LLVMContext &context = M.getContext();
-    profile_func_param_types[0] = Type::getInt32Ty(context); // function index
-    profile_func_param_types[1] = Type::getInt32Ty(context); // index
-    profile_func_param_types[2] = Type::getInt32Ty(context); // register number
-    profile_func_param_types[3] = Type::getInt32Ty(context); // dependency
+    profile_func_param_types[0] = Type::getInt32Ty(context);  // function index
+    profile_func_param_types[1] = Type::getInt32Ty(context);  // index
+    profile_func_param_types[2] = Type::getInt32Ty(context);  // register number
+    profile_func_param_types[3] = Type::getInt32Ty(context);  // dependency
 
-    ArrayRef<Type*> profile_func_param_types_array_ref(profile_func_param_types);
+    ArrayRef<Type *> profile_func_param_types_array_ref(
+        profile_func_param_types);
 
-    FunctionType *fi_init_func_type = FunctionType::get(Type::getInt1Ty(context),
-      profile_func_param_types_array_ref, false);
+    FunctionType *fi_init_func_type = FunctionType::get(
+        Type::getInt1Ty(context), profile_func_param_types_array_ref, false);
     return M.getOrInsertFunction("fault_inject_determine", fi_init_func_type);
   }
 
@@ -382,72 +396,77 @@ private:
     Constant *injectfunc = getInjectFunc(M);
     Constant *tracefunc = getTraceFunc(M);
 
-    for (std::map<const Type*, std::string>::const_iterator fi =
-      fi_rettype_funcname_map.begin();
-      fi != fi_rettype_funcname_map.end(); ++fi) {
+    for (std::map<const Type *, std::string>::const_iterator fi =
+             fi_rettype_funcname_map.begin();
+         fi != fi_rettype_funcname_map.end(); ++fi) {
       const Type *fi_type = fi->first;
 
-      Type *fi_type_unconst = const_cast<Type*>(fi_type);
+      Type *fi_type_unconst = const_cast<Type *>(fi_type);
 
       std::string fi_name = fi->second;
-      createInjectionFuncforType(M, fi_type_unconst, fi_name, injectfunc, pre_fi_func);
+      createInjectionFuncforType(M, fi_type_unconst, fi_name, injectfunc,
+                                 pre_fi_func);
     }
   }
 
-  static void createInjectionFuncforType(Module &M, Type *fitype, std::string &fi_name,
-    Constant *injectfunc, Constant *pre_fi_func) {
+  static void createInjectionFuncforType(Module &M, Type *fitype,
+                                         std::string &fi_name,
+                                         Constant *injectfunc,
+                                         Constant *pre_fi_func) {
     LLVMContext &context = M.getContext();
     Function *f = M.getFunction(fi_name);
-    std::vector<Value*> args;
+    std::vector<Value *> args;
     for (Function::arg_iterator ai = f->arg_begin(); ai != f->arg_end(); ++ai)
       args.push_back(&*ai);
 
-    BasicBlock* entryblock = BasicBlock::Create(context, "entry", f);
+    BasicBlock *entryblock = BasicBlock::Create(context, "entry", f);
     // store the value of target instruction to memory
-    AllocaInst *tmploc = new AllocaInst(fitype, M.getDataLayout().getProgramAddressSpace(), "tmploc", entryblock);
+    AllocaInst *tmploc =
+        new AllocaInst(fitype, M.getDataLayout().getProgramAddressSpace(),
+                       "tmploc", entryblock);
     new StoreInst(args[4], tmploc, entryblock);
 
-    std::vector<Value*> pre_fi_args(4);
-    pre_fi_args[0] = args[0]; // f_index
-    pre_fi_args[1] = args[1]; // index
-    pre_fi_args[2] = args[2]; // reg_num
-    pre_fi_args[3] = args[3]; // dependency
-    ArrayRef<Value*> pre_fi_args_array_ref(pre_fi_args);
-    Value *prefuncval = CallInst::Create(pre_fi_func, pre_fi_args_array_ref, "pre_cond", entryblock);
+    std::vector<Value *> pre_fi_args(4);
+    pre_fi_args[0] = args[0];  // f_index
+    pre_fi_args[1] = args[1];  // index
+    pre_fi_args[2] = args[2];  // reg_num
+    pre_fi_args[3] = args[3];  // dependency
+    ArrayRef<Value *> pre_fi_args_array_ref(pre_fi_args);
+    Value *prefuncval = CallInst::Create(pre_fi_func, pre_fi_args_array_ref,
+                                         "pre_cond", entryblock);
 
     BasicBlock *fiblock = BasicBlock::Create(context, "inject", f);
     BasicBlock *exitblock = BasicBlock::Create(context, "exit", f);
-    //if prefuncval is true, goto inject function
+    // if prefuncval is true, goto inject function
     BranchInst::Create(fiblock, exitblock, prefuncval, entryblock);
     BranchInst *fi2exit_branch = BranchInst::Create(exitblock, fiblock);
 
-    std::vector<Value*> fi_args(7);
-    fi_args[0] = args[0]; // f_index
+    std::vector<Value *> fi_args(7);
+    fi_args[0] = args[0];  // f_index
     int size = fitype->getScalarSizeInBits();
-    fi_args[1] = args[1]; // index
-    fi_args[2] = args[2]; // reg_num
-    fi_args[3] = args[3]; // dependency
-    fi_args[4] = ConstantInt::get(Type::getInt32Ty(context), size); // size
-    fi_args[5] = new BitCastInst(tmploc,
-      PointerType::get(Type::getInt8Ty(context), 0),
-      "tmploc_cast", fi2exit_branch); // pointer to target memory
-    fi_args[6] = args[5]; // opcode name
+    fi_args[1] = args[1];  // index
+    fi_args[2] = args[2];  // reg_num
+    fi_args[3] = args[3];  // dependency
+    fi_args[4] = ConstantInt::get(Type::getInt32Ty(context), size);  // size
+    fi_args[5] = new BitCastInst(
+        tmploc, PointerType::get(Type::getInt8Ty(context), 0), "tmploc_cast",
+        fi2exit_branch);   // pointer to target memory
+    fi_args[6] = args[5];  // opcode name
 
-    ArrayRef<Value*> fi_args_array_ref(fi_args);
+    ArrayRef<Value *> fi_args_array_ref(fi_args);
 
-    CallInst::Create(injectfunc, fi_args_array_ref, "",
-      fi2exit_branch);
+    CallInst::Create(injectfunc, fi_args_array_ref, "", fi2exit_branch);
 
     LoadInst *updateval = new LoadInst(tmploc, "updateval", exitblock);
     ReturnInst::Create(context, updateval, exitblock);
   }
 
   static int getDepedencyLevel(Instruction *I) {
-    //auto mgr = getInfoManager(I->getDebugLoc()->getLine());
-    //if (mgr == nullptr)
-      return -1;
-    //mgr->doFolding();
-    //return (*mgr->begin())->getType();
+    // auto mgr = getInfoManager(I->getDebugLoc()->getLine());
+    // if (mgr == nullptr)
+    return -1;
+    // mgr->doFolding();
+    // return (*mgr->begin())->getType();
   }
 
 #pragma endregion
@@ -461,19 +480,17 @@ private:
 
 class FaultInjectionTargetSelector {
   Function *target_function;
-  std::vector<std::pair<Instruction*, int>> selected;
+  std::vector<std::pair<Instruction *, int>> selected;
 
-public:
+ public:
   FaultInjectionTargetSelector(Function *TargetFunction)
-    : target_function(TargetFunction) {
-  }
+      : target_function(TargetFunction) {}
 
   void selectInstructions() {
-    for (auto& bb : *target_function) {
-      for (auto& inst : bb) {
-
+    for (auto &bb : *target_function) {
+      for (auto &inst : bb) {
         // [===== Store Instruction =====]
-        //if (isa<StoreInst> (inst)) {
+        // if (isa<StoreInst> (inst)) {
         //  if (inst.getOperand(0)->getType()->isIntegerTy())
         //    continue;
 
@@ -483,10 +500,10 @@ public:
         //}
 
         //// [===== Load Instruction =====]
-        //else if (isa<LoadInst>(inst)) {
+        // else if (isa<LoadInst>(inst)) {
         //  if (!isa<Instruction>(inst.getOperand(0)))
         //    continue;
-        //  
+        //
         //  selected.push_back({ &inst, -1 });
         //  inst.print(errs(), true);
         //  errs() << "\ninstrcution selected\n";
@@ -495,15 +512,16 @@ public:
         // destination register
         if (isRegofInstFITarget(&inst, &inst))
           if (isRegofInstInjectable(&inst, &inst))
-            selected.push_back({ &inst, -1 });
+            selected.push_back({&inst, -1});
 
         // source register
         int pos = 0;
-        for (User::op_iterator op_it = inst.op_begin(); op_it != inst.op_end(); ++op_it, ++pos) {
+        for (User::op_iterator op_it = inst.op_begin(); op_it != inst.op_end();
+             ++op_it, ++pos) {
           Value *src = *op_it;
           if (isRegofInstFITarget(src, &inst, pos)) {
             if (isRegofInstInjectable(src, &inst)) {
-              selected.push_back({ &inst, pos });
+              selected.push_back({&inst, pos});
             } else {
               errs() << "LLFI cannot inject faults in source reg ";
               if (isa<BasicBlock>(src))
@@ -521,16 +539,13 @@ public:
     }
   }
 
-  std::vector<std::pair<Instruction*, int>> getSelectedInsts() {
+  std::vector<std::pair<Instruction *, int>> getSelectedInsts() {
     return selected;
   }
 
-private:
+ private:
+  bool isRegofInstFITarget(Value *reg, Instruction *inst) { return true; }
 
-  bool isRegofInstFITarget(Value *reg, Instruction *inst) {
-    return true;
-  }
-  
   bool isRegofInstFITarget(Value *reg, Instruction *inst, int pos) {
     return false;
   }
@@ -543,10 +558,8 @@ private:
       if (inst->getType()->isVoidTy() || isa<TerminatorInst>(inst)) {
         return false;
       }
-    }
-    else {
-      if (isa<BasicBlock>(reg) || isa<PHINode>(inst))
-        return false;
+    } else {
+      if (isa<BasicBlock>(reg) || isa<PHINode>(inst)) return false;
     }
     return true;
   }
@@ -555,23 +568,20 @@ private:
 class ProfileCollector {
   std::set<std::string> function_name;
 
-public:
-  static ProfileCollector * Instance;
+ public:
+  static ProfileCollector *Instance;
 
-  ProfileCollector(Module &M) {
-    getModuleFuncs(M);
-  }
+  ProfileCollector(Module &M) { getModuleFuncs(M); }
 
   static ProfileCollector *getInstance(Module &M) {
-    if (Instance == nullptr)
-      Instance = new ProfileCollector(M);
+    if (Instance == nullptr) Instance = new ProfileCollector(M);
     return Instance;
   }
 
   void getModuleFuncs(Module &M) {
     for (Module::iterator it = M.begin(); it != M.end(); ++it) {
       std::string func_name = it->getName().str();
-      //std::string final_name = demangleFuncName(func_name);
+      // std::string final_name = demangleFuncName(func_name);
 
       function_name.insert(func_name);
     }
@@ -587,10 +597,9 @@ public:
 struct LLVMFaultInjectionPass : public ModulePass {
   static char ID;
 
-  LLVMFaultInjectionPass() : ModulePass(ID) {
-  }
+  LLVMFaultInjectionPass() : ModulePass(ID) {}
 
-  ~LLVMFaultInjectionPass() {  }
+  ~LLVMFaultInjectionPass() {}
 
   bool runOnModule(Module &M) override {
     if (!M.getFunction("main")) {
@@ -601,12 +610,14 @@ struct LLVMFaultInjectionPass : public ModulePass {
     int count_of_selection = 0;
     int f_index = 0;
 
-    for (Module::iterator m_it = M.begin(); m_it != M.end(); ++m_it, ++f_index) {
+    for (Module::iterator m_it = M.begin(); m_it != M.end();
+         ++m_it, ++f_index) {
       if (m_it->getName() != "main") continue;
       FaultInjectionTargetSelector selector(&*m_it);
       selector.selectInstructions();
-      for (auto& inst : selector.getSelectedInsts()) {
-        FaultInjectionInsertMachine::insertFaultInjection(M, *m_it, inst.first, count_of_selection, f_index, inst.second);
+      for (auto &inst : selector.getSelectedInsts()) {
+        FaultInjectionInsertMachine::insertFaultInjection(
+            M, *m_it, inst.first, count_of_selection, f_index, inst.second);
         count_of_selection++;
       }
     }
@@ -615,13 +626,13 @@ struct LLVMFaultInjectionPass : public ModulePass {
 
     return true;
   }
-
 };
 
-} // namespace
+}  // namespace
 
 char LLVMFaultInjectionPass::ID = 0;
 
-static RegisterPass<LLVMFaultInjectionPass> X("faultinject", "Fault Injection Pass",
-  false /* Only looks at CFG */,
-  false /* Analysis Pass */);
+static RegisterPass<LLVMFaultInjectionPass> X("faultinject",
+                                              "Fault Injection Pass",
+                                              false /* Only looks at CFG */,
+                                              false /* Analysis Pass */);
