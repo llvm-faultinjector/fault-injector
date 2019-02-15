@@ -42,7 +42,7 @@ llc -filetype=obj rtl-core.ll -o rtl-core.obj
 clang rtl-core.obj b.obj
 ```
 
-## Example a.c
+## Example a.c profile
 
 ``` c
 #include <stdio.h>
@@ -146,4 +146,19 @@ int main(int argc, char *argv[])
 [Fault Injector] RTL-Core Finish!
 ```
 
-Trace index=11 by yourself.
+Follow index 11th.
+
+```
+[Fault Injector] RTL-Core Init!
+[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000000
+[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000001
+[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000003
+[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000006
+[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=0000000A
+[Fault Injector] RTL-Core Finish!
+```
+
+## Example a.c Fault Inject
+
+```
+```
