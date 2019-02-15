@@ -38,6 +38,7 @@ void genFullNameOpcodeMap(
   opcodenamemap[std::string(Instruction::getOpcodeName(N))] = N;
 #include "llvm/IR/Instruction.def"
 }
+static int a = 1;
   
 ///---------------------------------------------------------
 ///
@@ -105,7 +106,7 @@ public:
     errs() << "\n";
 
     Constant *inject_func = getInjectFunc(M);
-    Constant *profile_func = getProfileFunc(M);
+    Constant *trace_func = getTraceFunc(M);
     Instruction *alloca_insertPoint = I->getParent()->getParent()->begin()->getFirstNonPHIOrDbgOrLifetime();
     Value *target = I;
 
@@ -165,6 +166,28 @@ public:
       use_it != inst_uses.end(); ++use_it) {
       User *user = *use_it;
       user->replaceUsesOfWith(target, ficall);
+
+      if (isa<TerminatorInst>(user))
+        continue;
+
+      //
+      // Insert 'fault_inject_trace' function.
+      //
+      AllocaInst *tmploc = new AllocaInst(return_type, M.getDataLayout().getProgramAddressSpace(), "tmploc_" + intToString(a), &*F.getEntryBlock().begin());
+      StoreInst *store_inst = new StoreInst(ficall, tmploc, cast<Instruction>(user)->getNextNode());
+      std::vector<Value*> trace_args(7);
+      trace_args[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), f_index);
+      trace_args[1] = ConstantInt::get(Type::getInt32Ty(M.getContext()), index);
+      trace_args[2] = ConstantInt::get(Type::getInt32Ty(M.getContext()), reg_num);
+      trace_args[3] = ConstantInt::get(Type::getInt32Ty(M.getContext()), getDepedencyLevel(I));
+      trace_args[4] = ConstantInt::get(Type::getInt32Ty(M.getContext()), target->getType()->getScalarSizeInBits()); // size
+      F.print(errs());
+      user->print(errs());
+      trace_args[5] = new BitCastInst(tmploc,
+        PointerType::get(Type::getInt8Ty(M.getContext()), 0), "tmploc_cast_" + intToString(a++), cast<Instruction>(user)->getNextNode()->getNextNode());
+      trace_args[6] = gep_expr;
+      ArrayRef<Value*> trace_args_array_ref(trace_args);
+      CallInst::Create(getTraceFunc(M), trace_args_array_ref, "", cast<Instruction>(user)->getNextNode()->getNextNode()->getNextNode());
     }
 
     //
@@ -303,7 +326,7 @@ private:
     return nameStr;
   }
 
-  static Constant *getProfileFunc(Module &M) {
+  static Constant *getTraceFunc(Module &M) {
     std::vector<Type*> profile_func_param_types(7);
     LLVMContext &context = M.getContext();
     profile_func_param_types[0] = Type::getInt32Ty(context); // function index
@@ -318,7 +341,7 @@ private:
 
     FunctionType *fi_init_func_type = FunctionType::get(Type::getVoidTy(context),
       profile_func_param_types_array_ref, false);
-    return M.getOrInsertFunction("fault_inject_profile", fi_init_func_type);
+    return M.getOrInsertFunction("fault_inject_trace", fi_init_func_type);
   }
 
   static Constant *getInjectFunc(Module &M) {
@@ -357,7 +380,7 @@ private:
   static void createInjectionFunctions(Module &M) {
     Constant *pre_fi_func = getDetermineFunc(M);
     Constant *injectfunc = getInjectFunc(M);
-    Constant *profilefunc = getProfileFunc(M);
+    Constant *tracefunc = getTraceFunc(M);
 
     for (std::map<const Type*, std::string>::const_iterator fi =
       fi_rettype_funcname_map.begin();
