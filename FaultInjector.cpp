@@ -8,10 +8,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <map>
-#include <set>
-#include <sstream>
-#include <string>
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Demangle/Demangle.h"
@@ -25,6 +21,10 @@
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/Dependency.h"
+#include <map>
+#include <set>
+#include <sstream>
+#include <string>
 
 #define DEBUG_TYPE "fault-injection"
 
@@ -209,9 +209,6 @@ class FaultInjectionInsertMachine {
  private:
 #pragma region Meta Functions
 
-  //
-  //  초기화 함수 헤더를 가져옵니다.
-  //
   static Constant *getInitFunction(Module &M) {
     LLVMContext &context = M.getContext();
 
@@ -226,9 +223,6 @@ class FaultInjectionInsertMachine {
     return M.getOrInsertFunction("fault_inject_init", fi_init_func_type);
   }
 
-  //
-  //  마무리 함수 헤더를 가져옵니다.
-  //
   static Constant *getFinishFunction(Module &M) {
     LLVMContext &context = M.getContext();
 
@@ -247,9 +241,6 @@ class FaultInjectionInsertMachine {
     return ret;
   }
 
-  //
-  //  프로그램의 모든 종료지점을 가져옵니다.
-  //
   static void getProgramExitInsts(Module &M,
                                   std::set<Instruction *> &exitinsts) {
     for (Module::iterator m_it = M.begin(); m_it != M.end(); ++m_it) {
