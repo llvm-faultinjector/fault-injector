@@ -173,11 +173,16 @@ Follow index 11th.
 
 ## How to work?
 
+### 0. Why are Pass and RTL separated?
+
+It is very inefficient to provide a customized program based on user needs, 
+so we provide `RTL` for profiling directly from the program.
+
 ### 1. LLVM Fault Injection Pass
 
 The role of `LLVM Fault Injection Pass` is to find `instructions` or `register` to 
 inject Fault and to link with `runtime library core`. Since the actual linking is 
-done in the `linker`, so the major role is to create the appropriate `object file`.
+done in the `linker`, the major role is to create the appropriate `object file`.
 
 #### 1.1. Inject fault-injection code
 
