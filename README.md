@@ -208,3 +208,25 @@ done in the `linker`, the major role is to create the appropriate `object file`.
 
 The runtime library contains the core code that performs the actual injection operation 
 and the log function that records various changes.
+
+## Run Options (RTL Options)
+
+### Select instruction
+
+### Select register
+
+### Select function
+
+### Select variable (require dependency-check pass)
+
+About dependency-check pass, go to https://github.com/rollrat/runnable-llvm.
+
+### Select basic block
+
+### Control fault probability
+
+#### Set zero probability for profile
+
+#### Set drawing lots probability
+
+#### Set an unconditional single injection per running
