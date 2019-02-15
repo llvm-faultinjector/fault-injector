@@ -20,6 +20,7 @@ Move 'llvm/build'
 Build your opt using cmake.
 
 You can also use loadable library.
+Ref: https://llvm.org/docs/WritingAnLLVMPass.html#quick-start-writing-hello-world
 ```
 
 ## Test
