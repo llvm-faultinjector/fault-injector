@@ -1,4 +1,4 @@
-# Fault Injection Tool for Hardware Injection
+# Fault Injector for Hardware Injection
 
 This project is compact version of llfi. (https://github.com/DependableSystemsLab/LLFI)
 
