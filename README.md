@@ -2,6 +2,9 @@
 
 This project is compact version of llfi. (https://github.com/DependableSystemsLab/LLFI)
 
+LLFI is too old to work with the latest version of LLVM. So we have created a 
+simple Fault Injection Tool that can run on the latest version of LLVM.
+
 ## Dependency
 
 ```
