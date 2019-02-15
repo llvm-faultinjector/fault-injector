@@ -173,3 +173,29 @@ Follow index 11th.
 
 ## How to work?
 
+### 1. LLVM Fault Injection Pass
+
+The role of `LLVM Fault Injection Pass` is to find `instructions` or `register` to 
+inject Fault and to link with `runtime library core`. Since the actual linking is 
+done in the `linker`, so the major role is to create the appropriate `object file`.
+
+#### 1.1. Inject fault-injection code
+
+##### 1.1.1. Select instructions and registers
+
+##### 1.1.2. Register bypassing and inject 'inject_fault#num' function
+
+##### 1.1.3. Insert 'fault_inject_trace' function
+
+#### 1.2. Insert meta functions
+
+##### 1.2.1. Insert 'fault_inject_init' function
+
+##### 1.2.2. Insert 'fault_inject_finish' function
+
+##### 1.2.3. Insert 'inject_fault#num' function
+
+### 2. Runtime Library Core
+
+The runtime library contains the core code that performs the actual injection operation 
+and the log function that records various changes.
