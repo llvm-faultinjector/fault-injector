@@ -2,7 +2,7 @@
 
 This project is compact version of llfi. (https://github.com/DependableSystemsLab/LLFI)
 
-## Requirements
+## Dependency
 
 ```
 LLVM 7.0.0 (or Later)
