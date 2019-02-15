@@ -29,7 +29,7 @@
 #define DEBUG_TYPE "fault-injection"
 
 using namespace llvm;
-
+static std::map<const Type*, std::string> fi_rettype_funcname_map;
 namespace {
   
 ///---------------------------------------------------------
@@ -85,15 +85,25 @@ public:
   //
   // Inject 'inject_fault#num' functions for test fault-injection.
   //
-  static void insertFaultInjection(Module &M, Function &F, Instruction *I, int index, int f_index) {
+  static void insertFaultInjection(Module &M, Function &F, Instruction *I, int index, int f_index, int operand) {
+
+    errs() << "inject ";
+    I->print(errs());
+    errs() << "\n";
+
     Constant *inject_func = getInjectFunc(M);
     Constant *profile_func = getProfileFunc(M);
     Instruction *alloca_insertPoint = I->getParent()->getParent()->begin()->getFirstNonPHIOrDbgOrLifetime();
+    Value *target = I;
+
+    if (operand != -1) {
+      target = I->getOperand(operand);
+    }
 
     //
     // Get 'inject_fault#num' parameter types.
     //
-    Type *return_type = I->getType();
+    Type *return_type = target->getType();
     std::vector<Type*> inject_func_types(5);
     inject_func_types[0] = Type::getInt32Ty(M.getContext()); // f_index
     inject_func_types[1] = Type::getInt32Ty(M.getContext()); // index
@@ -108,30 +118,30 @@ public:
     //
     // Set 'inject_fault#num' parameters.
     //
-    std::vector<Value*> args(7);
+    std::vector<Value*> args(5);
     args[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), f_index);
     args[1] = ConstantInt::get(Type::getInt32Ty(M.getContext()), index);
     args[2] = ConstantInt::get(Type::getInt32Ty(M.getContext()), getDepedencyLevel(I));
-    args[3] = I;
+    args[3] = target;
     std::string opcode_str = I->getOpcodeName();
     GlobalVariable* opcode_str_gv = findOrCreateGlobalNameString(M, opcode_str);
     std::vector<Constant*> indices_for_gep(2);
     indices_for_gep[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 0);
     indices_for_gep[1] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 0);
     ArrayRef<Constant*> indices_for_gep_array_ref(indices_for_gep);
-    Constant* gep_expr = ConstantExpr::getGetElementPtr(opcode_str_gv->getType(), 
+    Constant* gep_expr = ConstantExpr::getGetElementPtr(NULL, 
       opcode_str_gv, indices_for_gep_array_ref, true);
-    args[4] = gep_expr; // opcode in string
+    args[4] = gep_expr; // opcode in 
     ArrayRef<Value*> args_array_ref(args);
-    Instruction *insertptr = I;
+    Instruction *insertptr = getInsertPtrforRegsofInst(target, I);
     Instruction *ficall = CallInst::Create(injectfunc, args_array_ref, "fi", insertptr);
 
     //
     // Concatenates the results of an existing register with the 'inject_fault#num' function. 
     //
     std::list<User*> inst_uses;
-    for (Value::user_iterator user_it = I->user_begin();
-      user_it != I->user_end(); ++user_it) {
+    for (Value::user_iterator user_it = target->user_begin();
+      user_it != target->user_end(); ++user_it) {
       User *user = *user_it;
       if (user != ficall)
         inst_uses.push_back(user);
@@ -139,7 +149,7 @@ public:
     for (std::list<User*>::iterator use_it = inst_uses.begin();
       use_it != inst_uses.end(); ++use_it) {
       User *user = *use_it;
-      user->replaceUsesOfWith(I, ficall);
+      user->replaceUsesOfWith(target, ficall);
     }
 
     //
@@ -220,13 +230,36 @@ private:
 
 #pragma region Fault Injection Functions
 
+  static Instruction *getInsertPtrforRegsofInst(Value *reg, Instruction *inst) {
+    if (reg == inst) {
+      if (inst->isTerminator()) {
+        errs() << "ERROR: LLFI not able to inject into destination register of "
+          << *inst << ", change isRegofInstInjectable() to fix it\n";
+        exit(2);
+      } else {
+        Instruction *nn = inst->getNextNode();
+        while (isa<PHINode>(nn))
+          nn = nn->getNextNode();
+        return &*nn;
+      }
+    }
+    else {
+      if (isa<PHINode>(inst)) {
+        errs() << "ERROR: LLFI not able to inject into source register of " <<
+          *inst << ", change isRegofInstInjectable to fix it\n";
+        exit(2);
+      }
+      return inst;
+    }
+  }
+
   static std::string intToString(int i) {
     std::stringstream s;
     s << i;
     return s.str();
   }
 
-  static std::map<const Type*, std::string> fi_rettype_funcname_map;
+  
   static std::string getFIFuncNameforType(const Type *type) {
     std::string funcname;
     if (fi_rettype_funcname_map.find(type) != fi_rettype_funcname_map.end()) {
@@ -243,11 +276,12 @@ private:
   static GlobalVariable* findOrCreateGlobalNameString(Module &M, std::string name)
   {
     LLVMContext& context = M.getContext();
+    std::string str_prefix = std::string("fault_inject_");
     std::string str_suffix = std::string("_namestr");
-    GlobalVariable* nameStr = M.getGlobalVariable(name + str_suffix, true);
+    GlobalVariable* nameStr = M.getGlobalVariable(str_prefix + name + str_suffix, true);
     if (nameStr != NULL)
       return nameStr;
-    std::string gv_nameStr = name + str_suffix;
+    std::string gv_nameStr = str_prefix + name + str_suffix;
     Constant* name_c = ConstantDataArray::getString(context, name);
     nameStr = new GlobalVariable(name_c->getType(), true, GlobalVariable::InternalLinkage, name_c, gv_nameStr.c_str());
     M.getGlobalList().push_back(nameStr);
@@ -270,7 +304,7 @@ private:
   }
 
   static Constant *getInjectFunc(Module &M) {
-    std::vector<Type*> profile_func_param_types(4);
+    std::vector<Type*> profile_func_param_types(5);
     LLVMContext &context = M.getContext();
     profile_func_param_types[0] = Type::getInt32Ty(context); // function index
     profile_func_param_types[1] = Type::getInt32Ty(context); // register index
@@ -294,7 +328,7 @@ private:
 
     ArrayRef<Type*> profile_func_param_types_array_ref(profile_func_param_types);
 
-    FunctionType *fi_init_func_type = FunctionType::get(Type::getInt32Ty(context),
+    FunctionType *fi_init_func_type = FunctionType::get(Type::getInt1Ty(context),
       profile_func_param_types_array_ref, false);
     return M.getOrInsertFunction("fault_inject_determine", fi_init_func_type);
   }
@@ -327,7 +361,7 @@ private:
     BasicBlock* entryblock = BasicBlock::Create(context, "entry", f);
     // store the value of target instruction to memory
     AllocaInst *tmploc = new AllocaInst(fitype, M.getDataLayout().getProgramAddressSpace(), "tmploc", entryblock);
-    new StoreInst(args[1], tmploc, entryblock);
+    new StoreInst(args[3], tmploc, entryblock);
 
     std::vector<Value*> pre_fi_args(3);
     pre_fi_args[0] = args[0];
@@ -362,11 +396,11 @@ private:
   }
 
   static int getDepedencyLevel(Instruction *I) {
-    auto mgr = getInfoManager(I->getDebugLoc()->getLine());
-    if (mgr == nullptr)
+    //auto mgr = getInfoManager(I->getDebugLoc()->getLine());
+    //if (mgr == nullptr)
       return -1;
-    mgr->doFolding();
-    return (*mgr->begin())->getType();
+    //mgr->doFolding();
+    //return (*mgr->begin())->getType();
   }
 
 #pragma endregion
@@ -380,7 +414,7 @@ private:
 
 class FaultInjectionTargetSelector {
   Function *target_function;
-  std::vector<Instruction*> selected;
+  std::vector<std::pair<Instruction*, int>> selected;
 
 public:
   FaultInjectionTargetSelector(Function *TargetFunction)
@@ -390,8 +424,23 @@ public:
   void selectInstructions() {
     for (auto& bb : *target_function) {
       for (auto& inst : bb) {
+
+        // [===== Store Instruction =====]
         if (isa<StoreInst> (inst)) {
-          selected.push_back(&inst);
+          if (inst.getOperand(0)->getType()->isIntegerTy())
+            continue;
+
+          selected.push_back({ &inst, 0 });
+          inst.print(errs(), true);
+          errs() << "\ninstrcution selected\n";
+        }
+
+        // [===== Load Instruction =====]
+        else if (isa<LoadInst>(inst)) {
+          if (!isa<Instruction>(inst.getOperand(0)))
+            continue;
+          
+          selected.push_back({ &inst, -1 });
           inst.print(errs(), true);
           errs() << "\ninstrcution selected\n";
         }
@@ -399,7 +448,7 @@ public:
     }
   }
 
-  std::vector<Instruction*> getSelectedInsts() {
+  std::vector<std::pair<Instruction*, int>> getSelectedInsts() {
     return selected;
   }
 };
@@ -454,10 +503,11 @@ struct LLVMFaultInjectionPass : public ModulePass {
     int f_index = 0;
 
     for (Module::iterator m_it = M.begin(); m_it != M.end(); ++m_it, ++f_index) {
+      if (m_it->getName() != "main") continue;
       FaultInjectionTargetSelector selector(&*m_it);
       selector.selectInstructions();
       for (auto& inst : selector.getSelectedInsts()) {
-        FaultInjectionInsertMachine::insertFaultInjection(M, *m_it, inst, count_of_selection, f_index);
+        FaultInjectionInsertMachine::insertFaultInjection(M, *m_it, inst.first, count_of_selection, f_index, inst.second);
         count_of_selection++;
       }
     }
