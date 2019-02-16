@@ -134,6 +134,15 @@ Follow index 05th.
 
 ## Example a.c Fault Inject
 
+`setting` file.
+
+```
+run_fault_injection 1
+count_of_determine 54
+```
+
+`result` file.
+
 ```
 [Fault Injector] RTL-Core Init!
 [Fault Injector] trace: f_index=04, index=01, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
