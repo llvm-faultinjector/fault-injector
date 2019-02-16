@@ -51,7 +51,7 @@ class FaultInjectionInsertMachine {
   //
   // Insert code that does not depend on Instruction or Register.
   //
-  static void insertMetaFunc(Module &M, int count_of_index) {
+  static void insertMetaFunc(Module &M) {
     //
     // Find main function
     //
@@ -602,7 +602,7 @@ struct LLVMFaultInjectionPass : public ModulePass {
       }
     }
 
-    FaultInjectionInsertMachine::insertMetaFunc(M, count_of_selection);
+    FaultInjectionInsertMachine::insertMetaFunc(M);
 
     return true;
   }
