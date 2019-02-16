@@ -19,8 +19,8 @@
 #define MAX_INDEX 65535
 #define PRINT_MESSAGE 1
 
-#define SETTING_FILE_NAME     "setting"
-#define RESULT_FILE_NAME      "result"
+#define SETTING_FILE_NAME "setting"
+#define RESULT_FILE_NAME "result"
 
 typedef uint32_t major_type;
 
@@ -44,7 +44,6 @@ static int determine_count = 0;
 static FILE *log_file;
 
 void fault_inject_init() {
-
   // Open write file.
   log_file = fopen(RESULT_FILE_NAME, "w");
 
@@ -58,7 +57,7 @@ void fault_inject_init() {
   {
     FILE *fp;
     char op_name[255];
-    int  op_option = 0;
+    int op_option = 0;
 
     if ((fp = fopen(SETTING_FILE_NAME, "r")) == NULL) {
       fprintf(log_file, "[Fault Injector] Setting file not found.\n");
@@ -66,7 +65,11 @@ void fault_inject_init() {
     }
 
     while (fscanf(fp, "%s %d", op_name, &op_option) != EOF) {
-#define DECALE_OPTION(name) if (!strcmp(op_name, #name)) {name = op_option; continue;}
+#define DECALE_OPTION(name)      \
+  if (!strcmp(op_name, #name)) { \
+    name = op_option;            \
+    continue;                    \
+  }
       DECALE_OPTION(run_fault_injection)
 
       DECALE_OPTION(injection_type)
@@ -86,15 +89,15 @@ void fault_inject_init() {
   //
 
   if (run_fault_injection == 0) return;
-
 }
 
 static void print_log(uint32_t f_index, uint32_t index, uint32_t reg_num,
-  uint32_t dependency, uint32_t size, char *value,
-  char *opcode, int simple, const char *str) {
-
-  fprintf(log_file, "[Fault Injector] %s: f_index=%02d, index=%02d, reg_num=%02d, dependency=%d",
-      str, f_index, index, reg_num, dependency);
+                      uint32_t dependency, uint32_t size, char *value,
+                      char *opcode, int simple, const char *str) {
+  fprintf(log_file,
+          "[Fault Injector] %s: f_index=%02d, index=%02d, reg_num=%02d, "
+          "dependency=%d",
+          str, f_index, index, reg_num, dependency);
 
   if (simple == 0) {
     fprintf(log_file, ", opcode=%7s, size=%02d, value=", opcode, size);
@@ -103,7 +106,8 @@ static void print_log(uint32_t f_index, uint32_t index, uint32_t reg_num,
       fprintf(log_file, "%d", *value);
     } else {
       int sz = size / 8;
-      for (int i = 0; i < sz; i++) fprintf(log_file, "%02X", value[sz - i - 1] & 0xFF);
+      for (int i = 0; i < sz; i++)
+        fprintf(log_file, "%02X", value[sz - i - 1] & 0xFF);
     }
   }
   fprintf(log_file, "\n");
@@ -116,14 +120,13 @@ void fault_inject_trace(uint32_t f_index, uint32_t index, uint32_t reg_num,
   if (trace_index >= 0 && index != trace_index) return;
   if (trace_dependency >= 0 && dependency != trace_dependency) return;
   if (trace_register >= -1 && reg_num != trace_register) return;
-  print_log(f_index, index, reg_num, dependency, size, value, opcode, 0, "trace");
+  print_log(f_index, index, reg_num, dependency, size, value, opcode, 0,
+            "trace");
 }
 
 #pragma region Inject Determine
 
-static int determine(double rate) { 
-  return (double)rand() / RAND_MAX < rate; 
-}
+static int determine(double rate) { return (double)rand() / RAND_MAX < rate; }
 
 major_type fault_inject_determine(major_type f_index, major_type index,
                                   major_type reg_num, major_type dependency) {
@@ -136,13 +139,9 @@ major_type fault_inject_determine(major_type f_index, major_type index,
 
 #pragma region Fault Inject
 
-static int get_fault_inject_pos(int sz) {
-  return rand() % sz;
-}
+static int get_fault_inject_pos(int sz) { return rand() % sz; }
 
-static int get_fault_inject_bit() {
-  return rand() % (sizeof(char) * 8);
-}
+static int get_fault_inject_bit() { return rand() % (sizeof(char) * 8); }
 
 void fault_inject_flipbit(char *value) {
   *value ^= (1 << get_fault_inject_bit());
@@ -157,8 +156,10 @@ void fault_inject_set1(char *value) { *value |= (1 << get_fault_inject_bit()); }
 void fault_inject(uint32_t f_index, uint32_t index, uint32_t reg_num,
                   uint32_t dependency, uint32_t size, char *value,
                   char *opcode) {
-  print_log(f_index, index, reg_num, dependency, size, value, opcode, 0, "inject_before");
-  if (size == 1) *value ^= 1;
+  print_log(f_index, index, reg_num, dependency, size, value, opcode, 0,
+            "inject_before");
+  if (size == 1)
+    *value ^= 1;
   else {
     int pos = get_fault_inject_pos(size / 8);
     switch (injection_type) {
@@ -173,7 +174,8 @@ void fault_inject(uint32_t f_index, uint32_t index, uint32_t reg_num,
         break;
     }
   }
-  print_log(f_index, index, reg_num, dependency, size, value, opcode, 0, " inject_after");
+  print_log(f_index, index, reg_num, dependency, size, value, opcode, 0,
+            " inject_after");
 }
 
 #pragma endregion
