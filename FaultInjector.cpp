@@ -27,6 +27,7 @@
 #include <string>
 
 #define DEBUG_TYPE "fault-injection"
+#define IGNORE_ZERO_SIZE 1
 
 using namespace llvm;
 static std::map<const Type *, std::string> fi_rettype_funcname_map;
@@ -98,12 +99,8 @@ class FaultInjectionInsertMachine {
   //
   // Inject 'inject_fault#num' functions for test fault-injection.
   //
-  static void insertFaultInjection(Module &M, Function &F, Instruction *I,
+  static bool insertFaultInjection(Module &M, Function &F, Instruction *I,
                                    int index, int f_index, int reg_num) {
-    errs() << "inject ";
-    I->print(errs());
-    errs() << "\n";
-
     Constant *inject_func = getInjectFunc(M);
     Constant *trace_func = getTraceFunc(M);
     Instruction *alloca_insertPoint =
@@ -118,6 +115,9 @@ class FaultInjectionInsertMachine {
     // Get 'inject_fault#num' parameter types.
     //
     Type *return_type = target->getType();
+#if IGNORE_ZERO_SIZE
+    if (return_type->getScalarSizeInBits() == 0) return false;
+#endif
     std::vector<Type *> inject_func_types(6);
     inject_func_types[0] = Type::getInt32Ty(M.getContext());  // f_index
     inject_func_types[1] = Type::getInt32Ty(M.getContext());  // index
@@ -192,8 +192,6 @@ class FaultInjectionInsertMachine {
       trace_args[4] =
           ConstantInt::get(Type::getInt32Ty(M.getContext()),
                            target->getType()->getScalarSizeInBits());  // size
-      F.print(errs());
-      user->print(errs());
       trace_args[5] = new BitCastInst(
           tmploc, PointerType::get(Type::getInt8Ty(M.getContext()), 0),
           "tmploc_cast_" + intToString(a++),
@@ -204,6 +202,8 @@ class FaultInjectionInsertMachine {
           getTraceFunc(M), trace_args_array_ref, "",
           cast<Instruction>(user)->getNextNode()->getNextNode()->getNextNode());
     }
+
+    return true;
   }
 
  private:
@@ -607,9 +607,9 @@ struct LLVMFaultInjectionPass : public ModulePass {
       FaultInjectionTargetSelector selector(&*m_it);
       selector.selectInstructions();
       for (auto &inst : selector.getSelectedInsts()) {
-        FaultInjectionInsertMachine::insertFaultInjection(
-            M, *m_it, inst.first, count_of_selection, f_index, inst.second);
-        count_of_selection++;
+        if (FaultInjectionInsertMachine::insertFaultInjection(
+                M, *m_it, inst.first, count_of_selection, f_index, inst.second))
+          count_of_selection++;
       }
     }
 
