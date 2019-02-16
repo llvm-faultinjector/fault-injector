@@ -118,6 +118,7 @@ If you use a command line such as `./a 1 1 1 1 1`, you will get the following ou
 [Fault Injector] trace: f_index=04, index=00, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
 [Fault Injector] trace: f_index=04, index=08, reg_num=-1, dependency=-1, opcode=   load, size=32, value=0000000F
 [Fault Injector] RTL-Core Finish!
+[Fault Injector] determine=54
 ```
 
 Follow index 05th.
