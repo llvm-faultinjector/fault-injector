@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #define MAX_INDEX 65535
@@ -29,7 +30,7 @@ static int run_fault_injection = 0;
 
 // fault option
 static int injection_type = 0;
-static int count_of_determine = 54;
+static int count_of_determine = 0;
 
 // print option
 static int trace_function = -1;
@@ -50,6 +51,31 @@ void fault_inject_init() {
   //
   // TODO: Read setting file.
   //
+  {
+    FILE *fp;
+    char op_name[255];
+    int  op_option = 0;
+
+    if ((fp = fopen(SETTING_FILE_NAME, "r")) == NULL) {
+      printf("[Fault Injector] Setting file not found.\n");
+      exit(1);
+    }
+
+    while (fscanf(fp, "%s %d", op_name, &op_option) != EOF) {
+#define DECALE_OPTION(name) if (!strcmp(op_name, #name)) {name = op_option; continue;}
+      DECALE_OPTION(run_fault_injection)
+
+      DECALE_OPTION(injection_type)
+      DECALE_OPTION(count_of_determine)
+
+      DECALE_OPTION(trace_function)
+      DECALE_OPTION(trace_index)
+      DECALE_OPTION(trace_dependency)
+      DECALE_OPTION(trace_register)
+    }
+
+    fclose(fp);
+  }
 
   //
   // TODO: Initialize vars.
@@ -153,7 +179,7 @@ void fault_inject_finish() {
   printf("[Fault Injector] RTL-Core Finish!\n");
 #endif
 
-  if (run_fault_injection != 0)
+  if (run_fault_injection == 0)
     printf("[Fault Injector] determine=%d\n", determine_count);
 
   //
