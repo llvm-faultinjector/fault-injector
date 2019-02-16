@@ -62,12 +62,7 @@ class FaultInjectionInsertMachine {
     // Insert 'fault_inject_init' function.
     //
     Constant *initFunc = getInitFunction(M);
-    std::vector<Value *> initFunc_args(1);
-    initFunc_args[0] =
-        ConstantInt::get(Type::getInt32Ty(M.getContext()), count_of_index);
-    ArrayRef<Value *> initFunc_args_array_ref(initFunc_args);
-    CallInst::Create(initFunc, initFunc_args_array_ref, "",
-                     entryBB->getFirstNonPHI());
+    CallInst::Create(initFunc, "", entryBB->getFirstNonPHI());
 
     //
     // Insert 'fault_inject_finish' function.
@@ -212,14 +207,8 @@ class FaultInjectionInsertMachine {
   static Constant *getInitFunction(Module &M) {
     LLVMContext &context = M.getContext();
 
-    std::vector<Type *> fault_inject_init_param_types(1);
-    fault_inject_init_param_types[0] = Type::getInt32Ty(context);
-    ArrayRef<Type *> fault_inject_init_param_types_array_ref(
-        fault_inject_init_param_types);
-
     FunctionType *fi_init_func_type =
-        FunctionType::get(Type::getVoidTy(context),
-                          fault_inject_init_param_types_array_ref, false);
+        FunctionType::get(Type::getVoidTy(context), false);
     return M.getOrInsertFunction("fault_inject_init", fi_init_func_type);
   }
 
