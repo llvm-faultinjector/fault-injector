@@ -183,8 +183,7 @@ void fault_inject_finish() {
   fprintf(log_file, "[Fault Injector] RTL-Core Finish!\n");
 #endif
 
-  if (run_fault_injection == 0)
-    fprintf(log_file, "[Fault Injector] determine=%d\n", determine_count);
+  fprintf(log_file, "[Fault Injector] determine=%d\n", determine_count);
 
   // Save result file.
   fclose(log_file);
