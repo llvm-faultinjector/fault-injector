@@ -41,23 +41,27 @@ static int trace_register = -2;
 // profile
 static int determine_count = 0;
 
+static FILE *log_file;
+
 void fault_inject_init() {
+
+  // Open write file.
+  log_file = fopen(RESULT_FILE_NAME, "w");
+
 #if PRINT_MESSAGE
-  printf("[Fault Injector] RTL-Core Init!\n");
+  fprintf(log_file, "[Fault Injector] RTL-Core Init!\n");
 #endif
 
   srand(time(NULL));
 
-  //
-  // TODO: Read setting file.
-  //
+  // Read setting file.
   {
     FILE *fp;
     char op_name[255];
     int  op_option = 0;
 
     if ((fp = fopen(SETTING_FILE_NAME, "r")) == NULL) {
-      printf("[Fault Injector] Setting file not found.\n");
+      fprintf(log_file, "[Fault Injector] Setting file not found.\n");
       exit(1);
     }
 
@@ -89,20 +93,20 @@ static void print_log(uint32_t f_index, uint32_t index, uint32_t reg_num,
   uint32_t dependency, uint32_t size, char *value,
   char *opcode, int simple, const char *str) {
 
-  printf("[Fault Injector] %s: f_index=%02d, index=%02d, reg_num=%02d, dependency=%d",
+  fprintf(log_file, "[Fault Injector] %s: f_index=%02d, index=%02d, reg_num=%02d, dependency=%d",
       str, f_index, index, reg_num, dependency);
 
   if (simple == 0) {
-    printf(", opcode=%7s, size=%02d, value=", opcode, size);
+    fprintf(log_file, ", opcode=%7s, size=%02d, value=", opcode, size);
 
     if (size == 1) {
-      printf("%d", *value);
+      fprintf(log_file, "%d", *value);
     } else {
       int sz = size / 8;
-      for (int i = 0; i < sz; i++) printf("%02X", value[sz - i - 1] & 0xFF);
+      for (int i = 0; i < sz; i++) fprintf(log_file, "%02X", value[sz - i - 1] & 0xFF);
     }
   }
-  printf("\n");
+  fprintf(log_file, "\n");
 }
 
 void fault_inject_trace(uint32_t f_index, uint32_t index, uint32_t reg_num,
@@ -176,13 +180,12 @@ void fault_inject(uint32_t f_index, uint32_t index, uint32_t reg_num,
 
 void fault_inject_finish() {
 #if PRINT_MESSAGE
-  printf("[Fault Injector] RTL-Core Finish!\n");
+  fprintf(log_file, "[Fault Injector] RTL-Core Finish!\n");
 #endif
 
   if (run_fault_injection == 0)
-    printf("[Fault Injector] determine=%d\n", determine_count);
+    fprintf(log_file, "[Fault Injector] determine=%d\n", determine_count);
 
-  //
-  // TODO: Save result file.
-  //
+  // Save result file.
+  fclose(log_file);
 }
