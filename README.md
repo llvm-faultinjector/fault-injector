@@ -65,114 +65,117 @@ int main(int argc, char *argv[])
 If you use a command line such as `./a 1 1 1 1 1`, you will get the following outputs.
 
 ```
-10
+15
 ```
 
-10 = 0 + 1 + 2 + 3 + 4
-
-```
-[Fault Injector] RTL-Core Init!
-[Fault Injector] f_index=04, index=00, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=01, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=02, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=03, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=04, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=02, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=07, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000005
-[Fault Injector] f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=04, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=10, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
-[Fault Injector] f_index=04, index=09, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
-[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000000
-[Fault Injector] f_index=04, index=04, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=12, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
-[Fault Injector] f_index=04, index=13, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000001
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=02, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=07, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000005
-[Fault Injector] f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000001
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=04, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=10, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
-[Fault Injector] f_index=04, index=09, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000001
-[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000001
-[Fault Injector] f_index=04, index=04, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=12, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000001
-[Fault Injector] f_index=04, index=13, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000002
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=02, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=07, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000005
-[Fault Injector] f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000002
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=04, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=10, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000001
-[Fault Injector] f_index=04, index=09, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000002
-[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000003
-[Fault Injector] f_index=04, index=04, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=12, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000002
-[Fault Injector] f_index=04, index=13, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000003
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=02, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=07, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000005
-[Fault Injector] f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000003
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=04, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=10, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000003
-[Fault Injector] f_index=04, index=09, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000003
-[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000006
-[Fault Injector] f_index=04, index=04, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=12, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000003
-[Fault Injector] f_index=04, index=13, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000004
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=02, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=07, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000005
-[Fault Injector] f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000004
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=04, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=10, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
-[Fault Injector] f_index=04, index=09, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000004
-[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=0000000A
-[Fault Injector] f_index=04, index=04, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=12, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000004
-[Fault Injector] f_index=04, index=13, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000005
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=05, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=02, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=07, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000005
-[Fault Injector] f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000005
-[Fault Injector] f_index=04, index=04, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] f_index=04, index=14, reg_num=-1, dependency=-1, opcode=   load, size=32, value=0000000A
-[Fault Injector] f_index=04, index=00, reg_num=-1, dependency=-1, opcode= alloca, size=00, value=
-[Fault Injector] RTL-Core Finish!
-```
-
-Follow index 11th.
+15 = 0 + 1 + 2 + 3 + 4 + 5
 
 ```
 [Fault Injector] RTL-Core Init!
-[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000000
-[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000001
-[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000003
-[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000006
-[Fault Injector] f_index=04, index=11, reg_num=-1, dependency=-1, opcode=    add, size=32, value=0000000A
+[Fault Injector] trace: f_index=04, index=01, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=00, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
+[Fault Injector] trace: f_index=04, index=04, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
+[Fault Injector] trace: f_index=04, index=03, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000000
+[Fault Injector] trace: f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
+[Fault Injector] trace: f_index=04, index=07, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000001
+[Fault Injector] trace: f_index=04, index=01, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=00, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000001
+[Fault Injector] trace: f_index=04, index=04, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
+[Fault Injector] trace: f_index=04, index=03, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000001
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000001
+[Fault Injector] trace: f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000001
+[Fault Injector] trace: f_index=04, index=07, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000002
+[Fault Injector] trace: f_index=04, index=01, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=00, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000002
+[Fault Injector] trace: f_index=04, index=04, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000001
+[Fault Injector] trace: f_index=04, index=03, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000002
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000003
+[Fault Injector] trace: f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000002
+[Fault Injector] trace: f_index=04, index=07, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000003
+[Fault Injector] trace: f_index=04, index=01, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=00, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000003
+[Fault Injector] trace: f_index=04, index=04, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000003
+[Fault Injector] trace: f_index=04, index=03, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000003
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000003
+[Fault Injector] trace: f_index=04, index=07, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000004
+[Fault Injector] trace: f_index=04, index=01, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=00, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000004
+[Fault Injector] trace: f_index=04, index=04, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=03, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000004
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=0000000A
+[Fault Injector] trace: f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000004
+[Fault Injector] trace: f_index=04, index=07, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000005
+[Fault Injector] trace: f_index=04, index=01, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=00, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000005
+[Fault Injector] trace: f_index=04, index=04, reg_num=-1, dependency=-1, opcode=   load, size=32, value=0000000A
+[Fault Injector] trace: f_index=04, index=03, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000005
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=0000000F
+[Fault Injector] trace: f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000005
+[Fault Injector] trace: f_index=04, index=07, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=01, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=00, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=08, reg_num=-1, dependency=-1, opcode=   load, size=32, value=0000000F
 [Fault Injector] RTL-Core Finish!
+```
+
+Follow index 05th.
+
+```
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000000
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000001
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000003
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=0000000A
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=0000000F
 ```
 
 ## Example a.c Fault Inject
 
 ```
+[Fault Injector] RTL-Core Init!
+[Fault Injector] trace: f_index=04, index=01, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=00, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
+[Fault Injector] trace: f_index=04, index=04, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
+[Fault Injector] trace: f_index=04, index=03, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000000
+[Fault Injector] trace: f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
+[Fault Injector] trace: f_index=04, index=07, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000001
+[Fault Injector] trace: f_index=04, index=01, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=00, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000001
+[Fault Injector] trace: f_index=04, index=04, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000000
+[Fault Injector] trace: f_index=04, index=03, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000001
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000001
+[Fault Injector] trace: f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000001
+[Fault Injector] trace: f_index=04, index=07, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000002
+[Fault Injector] trace: f_index=04, index=01, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=00, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000002
+[Fault Injector] trace: f_index=04, index=04, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000001
+[Fault Injector] trace: f_index=04, index=03, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000002
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000003
+[Fault Injector] trace: f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000002
+[Fault Injector] trace: f_index=04, index=07, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000003
+[Fault Injector] trace: f_index=04, index=01, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=00, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000003
+[Fault Injector] trace: f_index=04, index=04, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000003
+[Fault Injector] trace: f_index=04, index=03, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000003
+[Fault Injector] trace: f_index=04, index=05, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=06, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000003
+[Fault Injector] trace: f_index=04, index=07, reg_num=-1, dependency=-1, opcode=    add, size=32, value=00000004
+[Fault Injector] inject_before: f_index=04, index=02, reg_num=-1, dependency=-1, opcode=   icmp, size=01, value=1
+[Fault Injector]  inject_after: f_index=04, index=02, reg_num=-1, dependency=-1, opcode=   icmp, size=01, value=0
+[Fault Injector] trace: f_index=04, index=01, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] trace: f_index=04, index=00, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000004
+[Fault Injector] trace: f_index=04, index=08, reg_num=-1, dependency=-1, opcode=   load, size=32, value=00000006
+[Fault Injector] RTL-Core Finish!
+[Fault Injector] determine=38
+```
+
+When `i (reg_num=07)` was 4 , the control flow changed, and loop escaped.
+
+```
+6
 ```
 
 ## How to work?
