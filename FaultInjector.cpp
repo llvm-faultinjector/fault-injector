@@ -22,12 +22,16 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/Dependency.h"
 #include <map>
+#include <random>
 #include <set>
 #include <sstream>
 #include <string>
 
 #define DEBUG_TYPE "fault-injection"
+
+#define MARK_FUNCTION_NAME "__marking_faultinject"
 #define IGNORE_ZERO_SIZE 1
+#define USE_RAW_INJECT 1
 
 using namespace llvm;
 static std::map<const Type *, std::string> fi_rettype_funcname_map;
@@ -199,6 +203,27 @@ class FaultInjectionInsertMachine {
     }
 
     return true;
+  }
+
+  static void insertRawFaultInjection(Module &M, Function &F, Instruction *I, std::mt19937& R) {
+    std::uniform_int_distribution<std::mt19937::result_type> dist(0, 31);
+    int loc = dist(R);
+
+    auto xor_op = BinaryOperator::CreateXor(I, ConstantInt::get(Type::getInt32Ty(M.getContext()), ~(1 << loc)), "rfi", I->getNextNode());
+
+    std::list<User *> inst_uses;
+    for (Value::user_iterator user_it = I->user_begin();
+      user_it != I->user_end(); ++user_it) {
+      User *user = *user_it;
+      if (user != I && user != xor_op) inst_uses.push_back(user);
+    }
+    for (std::list<User *>::iterator use_it = inst_uses.begin();
+      use_it != inst_uses.end(); ++use_it) {
+      User *user = *use_it;
+      user->replaceUsesOfWith(I, xor_op);
+    }
+
+    F.print(errs());
   }
 
  private:
@@ -469,6 +494,7 @@ class FaultInjectionTargetSelector {
   void selectInstructions() {
     for (auto &bb : *target_function) {
       for (auto &inst : bb) {
+#if !USE_RAW_INJECT
         // [===== Store Instruction =====]
         // if (isa<StoreInst> (inst)) {
         //  if (inst.getOperand(0)->getType()->isIntegerTy())
@@ -515,6 +541,26 @@ class FaultInjectionTargetSelector {
 
         /*if (isa<StoreInst>(inst))
           selected.push_back({ &inst, 1 });*/
+#else
+        if (CallInst *call = dyn_cast<CallInst>(&inst)) {
+          if (call->getCalledFunction()->getName().startswith(MARK_FUNCTION_NAME)) {
+            auto target = cast<Instruction>(call->getOperand(0));
+            std::list<User *> inst_uses;
+            for (Value::user_iterator user_it = target->user_begin();
+              user_it != target->user_end(); ++user_it) {
+              User *user = *user_it;
+              if (user != call) inst_uses.push_back(user);
+            }
+            for (std::list<User *>::iterator use_it = inst_uses.begin();
+              use_it != inst_uses.end(); ++use_it) {
+              if (!isa<PHINode>(*use_it)) {
+                selected.push_back({ cast<Instruction>(*use_it),-1 });
+                errs() << "SELECT : " << *cast<Instruction>(*use_it) << '\n';
+              }
+            }
+          }
+        }
+#endif
       }
     }
   }
@@ -590,19 +636,33 @@ struct LLVMFaultInjectionPass : public ModulePass {
     int count_of_selection = 0;
     int f_index = 0;
 
+    std::mt19937 rng;
+    rng.seed(std::random_device()());
+
     for (Module::iterator m_it = M.begin(); m_it != M.end();
          ++m_it, ++f_index) {
       if (m_it->getName() != "main") continue;
       FaultInjectionTargetSelector selector(&*m_it);
       selector.selectInstructions();
+#if !USE_RAW_INJECT
       for (auto &inst : selector.getSelectedInsts()) {
         if (FaultInjectionInsertMachine::insertFaultInjection(
-                M, *m_it, inst.first, count_of_selection, f_index, inst.second))
+          M, *m_it, inst.first, count_of_selection, f_index, inst.second))
           count_of_selection++;
       }
+#else
+      if (selector.getSelectedInsts().size() == 0) continue;
+      std::uniform_int_distribution<std::mt19937::result_type> dist(0, selector.getSelectedInsts().size() - 1);
+      auto selected = selector.getSelectedInsts()[dist(rng)].first;
+
+      FaultInjectionInsertMachine::insertRawFaultInjection(M, *m_it, selected, rng);
+      break;
+#endif
     }
 
+#if !USE_RAW_INJECT
     FaultInjectionInsertMachine::insertMetaFunc(M);
+#endif
 
     return true;
   }
