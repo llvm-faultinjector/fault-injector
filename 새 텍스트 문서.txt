@@ -1,0 +1,18 @@
+./opt -faultinject test/a.ll -S -o b.ll
+./llc -filetype=obj test/a.ll -o test/a.obj
+
+-out:a.exe 
+-defaultlib:libcmt 
+"-libpath:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.17134.0\\ucrt\\x86"
+"-libpath:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.17134.0\\um\\x86"
+"-libpath:C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\VC\\Tools\\MSVC\\14.14.26428\\lib\\x86"
+
+-------------------------------------------------------------------------------------------------------------------------
+
+./../opt -faultinject a.ll -S -o b.ll
+./../llc -filetype=obj b.ll -o b.obj
+
+clang -S -emit-llvm rtl-core.c
+./../llc -filetype=obj rtl-core.ll -o rtl-core.obj
+
+clang rtl-core.obj b.obj
