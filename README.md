@@ -188,6 +188,59 @@ When `i (reg_num=07)` was 4 , the control flow changed, and loop escaped.
 6
 ```
 
+## insertDetermineLogicForRawFaultInjection
+
+Before injection
+
+``` llvm
+define dso_local i32 @main(i32, i8** nocapture readnone) local_unnamed_addr #0 {
+  %3 = icmp sgt i32 %0, 0
+  br i1 %3, label %7, label %4
+
+; <label>:4:                                      ; preds = %7, %2
+  %5 = phi i32 [ 0, %2 ], [ %10, %7 ]
+  %6 = tail call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @"??_C@_02DPKJAMEF@?$CFd?$AA@", i64 0, i64 0), i32 %5)
+  ret i32 0
+
+; <label>:7:                                      ; preds = %2, %7
+  %8 = phi i32 [ %11, %7 ], [ 0, %2 ]
+  %9 = phi i32 [ %10, %7 ], [ 0, %2 ]
+  tail call void @__marking_faultinject_int(i32 %9) #3
+  %10 = add nuw nsw i32 %8, %9
+  %11 = add nuw nsw i32 %8, 1
+  %12 = icmp eq i32 %11, %0
+  br i1 %12, label %4, label %7
+}
+```
+
+After injection
+
+``` llvm
+define dso_local i32 @main(i32, i8** nocapture readnone) local_unnamed_addr #0 {
+  %xor_marker = alloca i32
+  store i32 4, i32* %xor_marker
+  %3 = icmp sgt i32 %0, 0
+  br i1 %3, label %7, label %4
+
+; <label>:4:                                      ; preds = %7, %2
+  %5 = phi i32 [ 0, %2 ], [ %10, %7 ]
+  %6 = tail call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @"??_C@_02DPKJAMEF@?$CFd?$AA@", i64 0, i64 0), i32 %5)
+  ret i32 0
+
+; <label>:7:                                      ; preds = %7, %2
+  %8 = phi i32 [ %11, %7 ], [ 0, %2 ]
+  %9 = phi i32 [ %10, %7 ], [ 0, %2 ]
+  tail call void @__marking_faultinject_int(i32 %9) #3
+  %xor_val = load i32, i32* %xor_marker
+  %rfi = xor i32 %9, %xor_val
+  store i32 0, i32* %xor_marker
+  %10 = add nuw nsw i32 %8, %rfi
+  %11 = add nuw nsw i32 %8, 1
+  %12 = icmp eq i32 %11, %0
+  br i1 %12, label %4, label %7
+}
+```
+
 ## How to work?
 
 ### 0. Why are Pass and RTL separated?
