@@ -226,6 +226,40 @@ class FaultInjectionInsertMachine {
     F.print(errs());
   }
 
+  static void insertDetermineLogicForRawFaultInjection(Module &M, Function &F, Instruction *I, Instruction *T, std::mt19937& R) {
+    // Create XOR setter and xor operand resetter
+
+    // ENTRY:
+    // %xor_marker = alloca i32, align 4
+    // store i32 (0~31 random number), %xor_marker, align 4
+    // CORE:
+    // %t = xor %target, %xor_marker
+    // store i32 0, %xor_marker
+
+    // pick random bits
+    std::uniform_int_distribution<std::mt19937::result_type> dist(0, 31);
+    int loc = dist(R);
+
+    IntegerType *type = Type::getInt32Ty(M.getContext());
+    AllocaInst *xor_marker =
+      new AllocaInst(type, M.getDataLayout().getProgramAddressSpace(),
+        "xor_marker", &*F.getEntryBlock().begin());
+    Value *num = ConstantInt::get(type, loc, true);
+    new StoreInst(num, xor_marker, &*++F.getEntryBlock().begin());
+
+    // Create xor and resetter
+    Value *num_zero = ConstantInt::get(type, 0, true);
+    StoreInst *resetter = new StoreInst(num_zero, xor_marker, I);
+    LoadInst *val = new LoadInst(xor_marker, "xor_val", resetter);
+    BinaryOperator *fi = BinaryOperator::CreateXor(T, val, "rfi", val->getNextNode());
+
+    for (int i = 0; i < I->getNumOperands(); i++)
+      if (I->getOperand(i) == T)
+        I->setOperand(i, fi);
+
+    F.print(errs());
+  }
+
  private:
 #pragma region Meta Functions
 
@@ -545,6 +579,7 @@ class FaultInjectionTargetSelector {
         if (CallInst *call = dyn_cast<CallInst>(&inst)) {
           if (call->getCalledFunction()->getName().startswith(MARK_FUNCTION_NAME)) {
             auto target = cast<Instruction>(call->getOperand(0));
+            selected.push_back({ target, 0 });
             std::list<User *> inst_uses;
             for (Value::user_iterator user_it = target->user_begin();
               user_it != target->user_end(); ++user_it) {
@@ -652,10 +687,10 @@ struct LLVMFaultInjectionPass : public ModulePass {
       }
 #else
       if (selector.getSelectedInsts().size() == 0) continue;
-      std::uniform_int_distribution<std::mt19937::result_type> dist(0, selector.getSelectedInsts().size() - 1);
+      std::uniform_int_distribution<std::mt19937::result_type> dist(1, selector.getSelectedInsts().size() - 1);
       auto selected = selector.getSelectedInsts()[dist(rng)].first;
 
-      FaultInjectionInsertMachine::insertRawFaultInjection(M, *m_it, selected, rng);
+      FaultInjectionInsertMachine::insertDetermineLogicForRawFaultInjection(M, *m_it, selected, selector.getSelectedInsts()[0].first, rng);
       break;
 #endif
     }
