@@ -605,6 +605,8 @@ class FaultInjectionTargetSelector {
                 if (isa<StoreInst>(*use_it))
                   if (cast<StoreInst>(*use_it)->getPointerOperand() == target)
                     continue;
+                if (!isa<LoadInst>(*use_it))
+                  continue;
                 selected.push_back({ cast<Instruction>(*use_it),-1 });
                 errs() << "SELECT : " << *cast<Instruction>(*use_it) << '\n';
               }
