@@ -249,13 +249,25 @@ class FaultInjectionInsertMachine {
 
     // Create xor and resetter
     Value *num_zero = ConstantInt::get(type, 0, true);
-    StoreInst *resetter = new StoreInst(num_zero, xor_marker, I);
+    StoreInst *resetter = new StoreInst(num_zero, xor_marker, I->getNextNode());
     LoadInst *val = new LoadInst(xor_marker, "xor_val", resetter);
-    BinaryOperator *fi = BinaryOperator::CreateXor(T, val, "rfi", val->getNextNode());
+    BinaryOperator *fi = BinaryOperator::CreateXor(I, val, "rfi", val->getNextNode());
 
-    for (int i = 0; i < I->getNumOperands(); i++)
+    /*for (int i = 0; i < I->getNumOperands(); i++)
       if (I->getOperand(i) == T)
-        I->setOperand(i, fi);
+        I->setOperand(i, fi);*/
+
+    std::list<User *> inst_uses;
+    for (Value::user_iterator user_it = I->user_begin();
+      user_it != I->user_end(); ++user_it) {
+      User *user = *user_it;
+      if (user != I && user != fi) inst_uses.push_back(user);
+    }
+    for (std::list<User *>::iterator use_it = inst_uses.begin();
+      use_it != inst_uses.end(); ++use_it) {
+      User *user = *use_it;
+      user->replaceUsesOfWith(I, fi);
+    }
 
     F.print(errs());
   }
@@ -526,6 +538,7 @@ class FaultInjectionTargetSelector {
       : target_function(TargetFunction) {}
 
   void selectInstructions() {
+    std::vector<CallInst *> marker;
     for (auto &bb : *target_function) {
       for (auto &inst : bb) {
 #if !USE_RAW_INJECT
@@ -589,15 +602,21 @@ class FaultInjectionTargetSelector {
             for (std::list<User *>::iterator use_it = inst_uses.begin();
               use_it != inst_uses.end(); ++use_it) {
               if (!isa<PHINode>(*use_it)) {
+                if (isa<StoreInst>(*use_it))
+                  if (cast<StoreInst>(*use_it)->getPointerOperand() == target)
+                    continue;
                 selected.push_back({ cast<Instruction>(*use_it),-1 });
                 errs() << "SELECT : " << *cast<Instruction>(*use_it) << '\n';
               }
             }
+            marker.push_back(call);
           }
         }
 #endif
       }
     }
+    for (auto ci : marker)
+      ci->eraseFromParent();
   }
 
   std::vector<std::pair<Instruction *, int>> getSelectedInsts() {
@@ -676,7 +695,7 @@ struct LLVMFaultInjectionPass : public ModulePass {
 
     for (Module::iterator m_it = M.begin(); m_it != M.end();
          ++m_it, ++f_index) {
-      if (m_it->getName() != "main") continue;
+      //if (m_it->getName() != "main") continue;
       FaultInjectionTargetSelector selector(&*m_it);
       selector.selectInstructions();
 #if !USE_RAW_INJECT
