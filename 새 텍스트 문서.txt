@@ -16,3 +16,4 @@ clang -S -emit-llvm rtl-core.c
 ./../llc -filetype=obj rtl-core.ll -o rtl-core.obj
 
 clang rtl-core.obj b.obj
+clang a.c -S -emit-llvm -o d.ll -mllvm -disable-llvm-optzns -disable-llvm-passes -O1
